@@ -78,6 +78,53 @@ def test_philippine_holidays_21_entries():
     assert aguinaldo[0].scope == "Cavite"
 
 
+def test_dynamic_movable_holidays_across_years():
+    """Verify that movable holidays dynamically calculate correct dates for 2025, 2026, 2027, 2028."""
+    from app.core.calendar_engine import generate_philippine_holidays, compute_easter_sunday, compute_last_monday_of_august
+
+    # Easter Sundays
+    assert compute_easter_sunday(2025) == date(2025, 4, 20)
+    assert compute_easter_sunday(2026) == date(2026, 4, 5)
+    assert compute_easter_sunday(2027) == date(2027, 3, 28)
+    assert compute_easter_sunday(2028) == date(2028, 4, 16)
+
+    # National Heroes Day (Last Monday of August)
+    assert compute_last_monday_of_august(2025) == date(2025, 8, 25)
+    assert compute_last_monday_of_august(2026) == date(2026, 8, 31)
+    assert compute_last_monday_of_august(2027) == date(2027, 8, 30)
+    assert compute_last_monday_of_august(2028) == date(2028, 8, 28)
+
+    # Check 2025 generated calendar
+    h_2025 = {h.name: h.date for h in generate_philippine_holidays(2025)}
+    assert h_2025["Maundy Thursday"] == date(2025, 4, 17)
+    assert h_2025["Good Friday"] == date(2025, 4, 18)
+    assert h_2025["Black Saturday"] == date(2025, 4, 19)
+    assert h_2025["National Heroes Day"] == date(2025, 8, 25)
+
+    # Check 2028 generated calendar
+    h_2028 = {h.name: h.date for h in generate_philippine_holidays(2028)}
+    assert h_2028["Maundy Thursday"] == date(2028, 4, 13)
+    assert h_2028["Good Friday"] == date(2028, 4, 14)
+    assert h_2028["National Heroes Day"] == date(2028, 8, 28)
+
+
+def test_holiday_toggle_is_active():
+    """Verify that toggling is_active=False treats that day as an active working day."""
+    from app.core.calendar_engine import networkdays_intl, Holiday
+
+    # August 2026: Aug 31 is National Heroes Day
+    start = date(2026, 8, 1)
+    end = date(2026, 8, 31)
+    h_active = [Holiday(date(2026, 8, 31), "Heroes Day", is_active=True)]
+    h_inactive = [Holiday(date(2026, 8, 31), "Heroes Day", is_active=False)]
+
+    days_with_holiday = networkdays_intl(start, end, "0000011", holidays=h_active)
+    days_without_holiday = networkdays_intl(start, end, "0000011", holidays=h_inactive)
+
+    assert days_without_holiday == days_with_holiday + 1
+
+
+
 def test_holiday_loss_and_allowances():
     """Verify lost units due to holidays and 1-week base allowance (₱465)."""
     daily_units = {"Mon": Decimal("9"), "Wed": Decimal("10")}

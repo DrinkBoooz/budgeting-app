@@ -70,7 +70,8 @@ def networkdays_intl(
     if holidays:
         for h in holidays:
             if hasattr(h, "date"):
-                holiday_set.add(h.date)
+                if getattr(h, "is_active", True):
+                    holiday_set.add(h.date)
             elif isinstance(h, date):
                 holiday_set.add(h)
 
@@ -239,6 +240,7 @@ class Holiday:
     name: str
     law_type: str = "Regular Holiday"
     scope: str = "Nationwide"
+    is_active: bool = True
 
 
 @dataclass
@@ -262,6 +264,52 @@ class CutoffBreakdown:
     one_week_base_allowance: Decimal = ZERO
     full_month_allowance: Decimal = ZERO
     raw_payload: Dict[str, Any] = field(default_factory=dict)
+
+
+def compute_easter_sunday(year: int) -> date:
+    """Meeus/Jones/Butcher algorithm to compute Easter Sunday for any Gregorian calendar year."""
+    a = year % 19
+    b = year // 100
+    c = year % 100
+    d = b // 4
+    e = b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i = c // 4
+    k = c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    month = (h + l - 7 * m + 114) // 31
+    day = ((h + l - 7 * m + 114) % 31) + 1
+    return date(year, month, day)
+
+
+def compute_last_monday_of_august(year: int) -> date:
+    """Compute National Heroes Day (Last Monday of August under Philippine RA 9492)."""
+    d = date(year, 8, 31)
+    return d - timedelta(days=d.weekday())
+
+
+# Multi-year Islamic & Lunar holiday lookup (2020-2035)
+ISLAMIC_AND_LUNAR_CALENDAR: Dict[int, Dict[str, Any]] = {
+    2020: {"cny": (1, 25), "fitr": [(5, 25)], "adha": (7, 31)},
+    2021: {"cny": (2, 12), "fitr": [(5, 13)], "adha": (7, 20)},
+    2022: {"cny": (2, 1), "fitr": [(5, 3)], "adha": (7, 9)},
+    2023: {"cny": (1, 22), "fitr": [(4, 21)], "adha": (6, 28)},
+    2024: {"cny": (2, 10), "fitr": [(4, 10)], "adha": (6, 17)},
+    2025: {"cny": (1, 29), "fitr": [(3, 31)], "adha": (6, 6)},
+    2026: {"cny": (2, 17), "fitr": [(3, 20), (3, 21)], "adha": (5, 27)},
+    2027: {"cny": (2, 6), "fitr": [(3, 9), (3, 10)], "adha": (5, 17)},
+    2028: {"cny": (1, 26), "fitr": [(2, 27), (2, 28)], "adha": (5, 5)},
+    2029: {"cny": (2, 13), "fitr": [(2, 15), (2, 16)], "adha": (4, 24)},
+    2030: {"cny": (2, 3), "fitr": [(2, 5)], "adha": (4, 14)},
+    2031: {"cny": (1, 23), "fitr": [(1, 25)], "adha": (4, 3)},
+    2032: {"cny": (2, 11), "fitr": [(1, 14)], "adha": (3, 23)},
+    2033: {"cny": (1, 31), "fitr": [(1, 3)], "adha": (3, 12)},
+    2034: {"cny": (2, 19), "fitr": [(12, 23)], "adha": (3, 1)},
+    2035: {"cny": (2, 8), "fitr": [(12, 12)], "adha": (2, 19)},
+}
 
 
 PHILIPPINE_HOLIDAYS_FULL: List[Holiday] = [
@@ -290,12 +338,57 @@ PHILIPPINE_HOLIDAYS_FULL: List[Holiday] = [
 
 
 def generate_philippine_holidays(year: Optional[int] = None) -> List[Holiday]:
-    """Return default statutory Philippine holidays for the given year."""
-    if year:
-        matching = [h for h in PHILIPPINE_HOLIDAYS_FULL if h.date.year == year]
-        if matching:
-            return matching
-    return list(PHILIPPINE_HOLIDAYS_FULL)
+    """Dynamically generate the complete statutory Philippine holiday calendar for any year."""
+    if year is None:
+        return list(PHILIPPINE_HOLIDAYS_FULL)
+
+    easter = compute_easter_sunday(year)
+    heroes = compute_last_monday_of_august(year)
+    lunar = ISLAMIC_AND_LUNAR_CALENDAR.get(
+        year,
+        {"cny": (2, 1), "fitr": [(3, 15)], "adha": (5, 20)}
+    )
+
+    holidays: List[Holiday] = []
+
+    # 1. Regular Fixed Holidays (200% Pay)
+    holidays.append(Holiday(date(year, 1, 1), "New Year's Day", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(date(year, 4, 9), "Araw ng Kagitingan (Day of Valor)", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(date(year, 5, 1), "Labor Day", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(date(year, 6, 12), "Independence Day", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(heroes, "National Heroes Day", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(date(year, 11, 30), "Bonifacio Day", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(date(year, 12, 25), "Christmas Day", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(date(year, 12, 30), "Rizal Day", "Regular Holiday", "Nationwide"))
+
+    # 2. Regular Movable Holidays (Holy Week & Islamic)
+    holidays.append(Holiday(easter - timedelta(days=3), "Maundy Thursday", "Regular Holiday", "Nationwide"))
+    holidays.append(Holiday(easter - timedelta(days=2), "Good Friday", "Regular Holiday", "Nationwide"))
+
+    for idx, (fm, fd) in enumerate(lunar["fitr"]):
+        label = f"Eid'l Fitr (Day {idx + 1})" if len(lunar["fitr"]) > 1 else "Eid'l Fitr"
+        holidays.append(Holiday(date(year, fm, fd), label, "Regular Holiday", "Nationwide"))
+
+    am, ad = lunar["adha"]
+    holidays.append(Holiday(date(year, am, ad), "Eid'l Adha", "Regular Holiday", "Nationwide"))
+
+    # 3. Special Non-Working Fixed Holidays (130% Pay)
+    holidays.append(Holiday(date(year, 2, 25), "EDSA People Power Revolution Anniversary", "Special Non-Working Day", "Nationwide"))
+    holidays.append(Holiday(date(year, 3, 22), "Emilio Aguinaldo Day", "Special Non-Working Day", "Cavite"))
+    holidays.append(Holiday(date(year, 8, 21), "Ninoy Aquino Day", "Special Non-Working Day", "Nationwide"))
+    holidays.append(Holiday(date(year, 11, 1), "All Saints' Day", "Special Non-Working Day", "Nationwide"))
+    holidays.append(Holiday(date(year, 11, 2), "All Souls' Day", "Special Working Day", "Nationwide"))
+    holidays.append(Holiday(date(year, 12, 8), "Feast of the Immaculate Conception", "Special Non-Working Day", "Nationwide"))
+    holidays.append(Holiday(date(year, 12, 24), "Christmas Eve", "Special Non-Working Day", "Nationwide"))
+    holidays.append(Holiday(date(year, 12, 31), "Last Day of the Year", "Special Non-Working Day", "Nationwide"))
+
+    # 4. Special Non-Working Movable Holidays
+    c_m, c_d = lunar["cny"]
+    holidays.append(Holiday(date(year, c_m, c_d), "Chinese New Year", "Special Non-Working Day", "Nationwide"))
+    holidays.append(Holiday(easter - timedelta(days=1), "Black Saturday", "Special Non-Working Day", "Nationwide"))
+
+    holidays.sort(key=lambda h: h.date)
+    return holidays
 
 
 DAY_NAME_TO_INDEX = {
@@ -323,11 +416,12 @@ def calculate_cutoff_units(
     if holidays:
         for h in holidays:
             if hasattr(h, "date"):
-                holiday_dates.append(h.date)
+                if getattr(h, "is_active", True):
+                    holiday_dates.append(h.date)
             elif isinstance(h, date):
                 holiday_dates.append(h)
     else:
-        holiday_dates = DEFAULT_PHILIPPINE_HOLIDAYS_2026
+        holiday_dates = [h.date for h in generate_philippine_holidays(year) if getattr(h, "is_active", True)]
 
     engine = CalendarEngine(holidays=holiday_dates)
 

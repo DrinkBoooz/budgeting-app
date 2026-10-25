@@ -296,22 +296,40 @@
           <div class="card">
             <div class="card-header">
               <div class="card-title">⚙️ Schedule & Daily Living Rate Settings</div>
-              <div style="display: flex; gap: 0.75rem; align-items: center;">
-                <label class="form-label" for="select-schedule-month" style="margin: 0;">Month:</label>
-                <select id="select-schedule-month" class="form-control" style="width: 140px;">
-                  <option value="1">January</option>
-                  <option value="2">February</option>
-                  <option value="3">March</option>
-                  <option value="4">April</option>
-                  <option value="5">May</option>
-                  <option value="6">June</option>
-                  <option value="7">July</option>
-                  <option value="8">August</option>
-                  <option value="9">September</option>
-                  <option value="10" selected>October</option>
-                  <option value="11">November</option>
-                  <option value="12">December</option>
-                </select>
+              <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <label class="form-label" for="select-schedule-year" style="margin: 0; font-size: 0.85rem;">Year:</label>
+                  <select id="select-schedule-year" class="form-control" style="width: 90px; padding: 0.25rem 0.5rem;">
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026" selected>2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                    <option value="2029">2029</option>
+                    <option value="2030">2030</option>
+                  </select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <label class="form-label" for="select-schedule-month" style="margin: 0; font-size: 0.85rem;">Month:</label>
+                  <select id="select-schedule-month" class="form-control" style="width: 120px; padding: 0.25rem 0.5rem;">
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10" selected>October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                  </select>
+                </div>
+                <button id="btn-manage-holidays" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.65rem;">
+                  <span>📅 Holidays</span>
+                  <span id="txt-holiday-badge-count" class="badge badge-info" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;">23</span>
+                </button>
               </div>
             </div>
 
@@ -1292,6 +1310,82 @@
             <button type="submit" class="btn btn-primary">Save Entry</button>
           </div>
         </form>
+      </div>
+    <!-- Modal: Holiday Manager -->
+    <div id="modal-holidays" class="modal-backdrop">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">📅 Philippine Statutory & Custom Holidays Manager</div>
+          <button class="btn btn-secondary btn-sm modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 480px;">
+              Active Year: <strong id="lbl-holiday-year" class="text-emerald-400">2026</strong> · Holy Week, National Heroes Day, and Islamic/Lunar holidays are calculated dynamically. You can add proclamations, adjust dates, or toggle observances.
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <button id="btn-toggle-add-holiday" class="btn btn-primary btn-sm">➕ Add Holiday</button>
+              <button id="btn-reset-default-holidays" class="btn btn-secondary btn-sm">🔄 Reset to Defaults</button>
+            </div>
+          </div>
+
+          <!-- Add Holiday Form (Initially Hidden) -->
+          <div id="box-add-holiday" class="card" style="display: none; margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
+            <div style="font-weight: 600; margin-bottom: 0.75rem;">➕ Add Custom / Proclamation Holiday</div>
+            <div class="grid-4" style="gap: 0.5rem; margin-bottom: 0.75rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="inp-new-holiday-date" style="font-size: 0.75rem;">Date</label>
+                <input type="date" id="inp-new-holiday-date" class="form-control" style="padding: 0.35rem 0.5rem;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="inp-new-holiday-name" style="font-size: 0.75rem;">Holiday Name</label>
+                <input type="text" id="inp-new-holiday-name" class="form-control" placeholder="e.g. Special Election Day" style="padding: 0.35rem 0.5rem;">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="sel-new-holiday-type" style="font-size: 0.75rem;">Classification</label>
+                <select id="sel-new-holiday-type" class="form-control" style="padding: 0.35rem 0.5rem;">
+                  <option value="Regular Holiday">Regular Holiday (200%)</option>
+                  <option value="Special Non-Working Day">Special Non-Working Day (130%)</option>
+                  <option value="Special Working Day">Special Working Day (100%)</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="sel-new-holiday-scope" style="font-size: 0.75rem;">Scope</label>
+                <select id="sel-new-holiday-scope" class="form-control" style="padding: 0.35rem 0.5rem;">
+                  <option value="Nationwide">Nationwide</option>
+                  <option value="Cavite">Cavite Province</option>
+                  <option value="Local">Local / Institutional</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+              <button id="btn-cancel-add-holiday" type="button" class="btn btn-secondary btn-sm">Cancel</button>
+              <button id="btn-save-new-holiday" type="button" class="btn btn-success btn-sm">Save Holiday</button>
+            </div>
+          </div>
+
+          <!-- Holidays Table -->
+          <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width: 45px;" class="text-center">Active</th>
+                  <th style="width: 140px;">Date</th>
+                  <th>Holiday Observance</th>
+                  <th>Classification</th>
+                  <th>Scope</th>
+                  <th class="text-center" style="width: 50px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-holidays-list">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary modal-close">Done</button>
+        </div>
       </div>
     </div>
 

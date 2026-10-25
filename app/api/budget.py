@@ -41,6 +41,8 @@ class BudgetAPI(BaseAPI):
                                 date=d_obj,
                                 name=h.get("name", "Holiday"),
                                 law_type=h.get("law_type", "Regular Holiday"),
+                                scope=h.get("scope", "Nationwide"),
+                                is_active=bool(h.get("is_active", True)),
                             )
                         )
                     except ValueError:
@@ -148,6 +150,7 @@ class BudgetAPI(BaseAPI):
                 "name": h.name,
                 "law_type": h.law_type,
                 "scope": h.scope,
+                "is_active": h.is_active,
             }
             for h in holidays
         ])
@@ -174,6 +177,8 @@ class BudgetAPI(BaseAPI):
                                 date=d_obj,
                                 name=h.get("name", "Holiday"),
                                 law_type=h.get("law_type", "Regular Holiday"),
+                                scope=h.get("scope", "Nationwide"),
+                                is_active=bool(h.get("is_active", True)),
                             )
                         )
                     except ValueError:

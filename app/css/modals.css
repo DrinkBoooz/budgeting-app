@@ -37,6 +37,10 @@
   transition: transform var(--transition-normal);
 }
 
+.modal-dialog.modal-lg {
+  max-width: 820px;
+}
+
 .modal-backdrop.open .modal-dialog {
   transform: scale(1);
 }

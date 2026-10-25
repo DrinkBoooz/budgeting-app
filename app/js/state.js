@@ -116,6 +116,15 @@ window.AppState = {
       if (res.data.budget_extras) Object.assign(this.data.budget_extras, res.data.budget_extras);
       if (res.data.pipeline) Object.assign(this.data.pipeline, res.data.pipeline);
     }
+
+    // Initialize statutory holidays if empty
+    if (!this.data.schedule.holidays || this.data.schedule.holidays.length === 0) {
+      const hRes = await Bridge.call('get_default_holidays', { year: this.data.schedule.year || 2026 });
+      if (hRes && hRes.success && hRes.data) {
+        this.data.schedule.holidays = hRes.data;
+      }
+    }
+
     await this.recalculateAll();
   },
 

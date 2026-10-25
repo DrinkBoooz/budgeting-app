@@ -291,3 +291,73 @@ classDiagram
     BudgetReconciliation --> MonthlyBill
     BudgetReconciliation --> PeerSettlement
 ```
+
+---
+
+## 3.13 Dynamic Annual Holiday Engine & Interactive Observance Manager
+
+### 3.13.1 Limitations of Hardcoded Holiday Schedules
+In basic budgeting sheets or initial software prototypes, statutory holidays are often hardcoded to a single calendar year (e.g. 2026/2027 in `references/Dan BudgetingV3.xlsx`). However, Philippine labor and statutory holiday schedules vary substantially year-over-year:
+1. **Movable Christian Holidays (Holy Week)**: Determined by the astronomical Easter cycle, shifting between late March and late April.
+2. **Fixed Relative Holidays**: Under **Republic Act No. 9492**, National Heroes Day is celebrated every **last Monday of August**.
+3. **Islamic Lunar Holidays**: Determined by the Hijri lunar calendar and declared annually via Presidential Proclamation (Eid'l Fitr and Eid'l Adha).
+4. **Lunar Cultural Holidays**: Chinese New Year varies annually between January 21 and February 20.
+5. **Executive Proclamations & Holiday Economics**: Presidents frequently declare special non-working days or shift observances to create long weekends.
+
+### 3.13.2 Algorithmic Dynamic Computations
+
+The dynamic holiday engine in `app/core/calendar_engine.py` implements algorithmic and astronomical calendar routines for any target year ($2020 \le \text{year} \le 2035+$):
+
+#### 1. Meeus/Jones/Butcher Gregorian Easter Computus
+Easter Sunday is calculated using the Butcher algorithm:
+$$a = \text{year} \pmod{19}$$
+$$b = \lfloor\text{year} / 100\rfloor, \quad c = \text{year} \pmod{100}$$
+$$d = \lfloor b / 4\rfloor, \quad e = b \pmod{4}$$
+$$f = \lfloor(b + 8) / 25\rfloor, \quad g = \lfloor(b - f + 1) / 3\rfloor$$
+$$h = (19a + b - d - g + 15) \pmod{30}$$
+$$i = \lfloor c / 4\rfloor, \quad k = c \pmod{4}$$
+$$l = (32 + 2e + 2i - h - k) \pmod{7}$$
+$$m = \lfloor(a + 11h + 22l) / 451\rfloor$$
+$$\text{month} = \lfloor(h + l - 7m + 114) / 31\rfloor, \quad \text{day} = ((h + l - 7m + 114) \pmod{31}) + 1$$
+
+From Easter Sunday ($E$):
+- **Maundy Thursday**: $E - 3 \text{ days}$ (Regular Holiday, 200%)
+- **Good Friday**: $E - 2 \text{ days}$ (Regular Holiday, 200%)
+- **Black Saturday**: $E - 1 \text{ day}$ (Special Non-Working Day, 130%)
+
+#### 2. National Heroes Day (RA 9492)
+Calculated as the final Monday of August ($31 - (\text{weekday of Aug 31}) \pmod{7}$).
+
+#### 3. Islamic & Lunar Calendar Table (2020–2035)
+Pre-computed table mapping Chinese New Year, Eid'l Fitr, and Eid'l Adha across multi-year cycles.
+
+### 3.13.3 Interactive Holiday Manager UI & Reactive State
+Users have full interactive control via Tab 2 (`#tab-schedule`) and `#modal-holidays`:
+- **Year Switching**: Selecting any year from 2024 to 2030 immediately computes and populates that year's statutory calendar.
+- **Active Toggle (`is_active: bool`)**: Users can toggle individual holidays on or off (e.g. if their institution holds classes or regular work during a local/special holiday).
+- **Inline Date Editing**: Allows updating observance dates when Presidential Proclamations shift holidays for long weekends.
+- **Custom Holiday Creation**: Add company or university holidays with exact classifications (`Regular Holiday`, `Special Non-Working Day`, `Special Working Day`) and scopes (`Nationwide`, `Cavite`, `Local`).
+- **One-Click Statutory Reset**: Restores exact legal baselines for the selected year.
+
+### 3.13.4 Calculation Pipeline & Impact
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Faculty
+    participant UI as Schedule UI (Tab 2)
+    participant State as AppState (state.js)
+    participant Engine as Calendar Engine (calendar_engine.py)
+    participant Uni as Unified Budget Engine
+
+    User->>UI: Selects Year (e.g., 2027) or Toggles Holiday Active/Inactive
+    UI->>State: Updates AppState.data.schedule.holidays
+    State->>Engine: calculate_cutoff_units(year, month, active_holidays, daily_units)
+    Note over Engine: Filters active holidays: [h for h in holidays if h.is_active]
+    Engine->>Engine: networkdays_intl with custom bitmask
+    Engine-->>State: Cutoff 1 & 2 Units, Workdays, Lost Units/Cash (A5:C5)
+    State->>Uni: compute_unified_budget(gross_from_schedule, ...)
+    Uni-->>State: Updated Net Take-Home, Deductions, and Available Cash
+    State->>UI: Re-renders Cutoff cards, Loss banner, and Budget waterfall
+```
+
