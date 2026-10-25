@@ -60,10 +60,41 @@ def test_workbook_importer_if_file_exists():
     # Verify Calumpang peer items were parsed
     calumpang_items = data["settlements"]["items"]
     assert len(calumpang_items) > 0
+    assert "master_matrix" in data["settlements"]
+    assert data["settlements"]["master_matrix"]["troy"]["bank_transfer"] == "4872.00"
 
     # Verify Mama groceries items were parsed
     groceries_items = data["groceries"]["items"]
     assert len(groceries_items) > 0
+
+    # Verify Apt Expenses (6 sub-ledgers) were parsed
+    assert "apt_expenses" in data
+    apt = data["apt_expenses"]
+    assert apt["house_expenditures"]["grand_total"] == "4675.00"
+    assert apt["application_expenses"]["subtotal"] == "2420.00"
+    assert apt["dentist_tracker"]["total_billed"] == "37500.00"
+    assert apt["dentist_tracker"]["total_paid"] == "8000.00"
+    assert apt["dentist_tracker"]["pure_dentist_remaining"] == "29500.00"
+    assert apt["dentist_tracker"]["combined_grand_total"] == "31920.00"
+    assert apt["dentist_tracker"]["progress_bar"] == "██░░░░░░░░"
+    assert apt["expedition"]["subtotal"] == "968.00"
+
+    # Verify Chore Chart was parsed
+    assert "chores" in data
+    assert data["chores"]["chores_count"] == 16
+    assert "Dan" in data["chores"]["counts"]
+
+
+    # Verify Pajah Rent was parsed
+    assert "pajah" in data
+    assert data["pajah"]["total_owned"] == 8
+    assert data["pajah"]["total_potential_sum"] == "10800.00"
+
+    # Verify Current Budget payables & additionals
+    assert "budget_extras" in data
+    assert len(data["budget_extras"]["additionals"]) > 0
+    assert isinstance(data["budget_extras"]["payables"], list)
+
 
 
 def test_workbook_importer_nonexistent_file():

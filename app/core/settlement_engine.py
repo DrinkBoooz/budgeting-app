@@ -375,3 +375,101 @@ def generate_executive_cash_flow(
             "savings_rate_pct": str(savings_pct)
         }
     )
+
+
+# ---------------------------------------------------------------------------
+# Calumpang Master Settlement Matrix (M1:U39) & DJ Gastos (A32:C59)
+# ---------------------------------------------------------------------------
+
+@dataclass
+class MasterMatrixEntry:
+    amount: Decimal
+    is_paid: bool
+    note: str
+
+
+@dataclass
+class MasterPersonSettlement:
+    name: str
+    items: List[MasterMatrixEntry]
+    spotify_addon: Decimal = ZERO
+    utilities_addon: Decimal = ZERO
+    deductibles: List[Decimal] = field(default_factory=list)
+    cash_items: List[Decimal] = field(default_factory=list)
+
+    @property
+    def subtotal_selected(self) -> Decimal:
+        """=SUMIF(Paid_Flags, TRUE, Amounts)."""
+        tot = sum((it.amount for it in self.items if it.is_paid), ZERO)
+        if self.spotify_addon > ZERO:
+            tot += self.spotify_addon
+        if self.utilities_addon > ZERO:
+            tot += self.utilities_addon
+        return quantize_currency(tot)
+
+    @property
+    def total_bank_transfer(self) -> Decimal:
+        """=ROUNDUP(Subtotal - Deductibles, 0)."""
+        net = self.subtotal_selected - sum(self.deductibles, ZERO)
+        return quantize_currency(round_up_excel(max(ZERO, net), 0))
+
+
+    @property
+    def total_cash(self) -> Decimal:
+        """=SUM(Cash_Items)."""
+        return quantize_currency(sum(self.cash_items, ZERO))
+
+
+def calculate_master_settlement_matrix(
+    troy_entries: Optional[List[Dict[str, Any]]] = None,
+    jaco_entries: Optional[List[Dict[str, Any]]] = None,
+    dan_entries: Optional[List[Dict[str, Any]]] = None,
+    spotify_amount: Decimal = Decimal("57.40"),
+    troy_utilities: Decimal = Decimal("3175.00"),
+) -> Dict[str, Any]:
+    """Calculate Master Matrix matching Calumpang M1:U39."""
+    # Build Troy settlement
+    troy_items = [
+        MasterMatrixEntry(to_decimal(e.get("amount", 0)), bool(e.get("is_paid", True)), str(e.get("note", "")))
+        for e in (troy_entries or [])
+    ]
+    troy = MasterPersonSettlement(
+        name="Troy",
+        items=troy_items,
+        spotify_addon=to_decimal(spotify_amount),
+        utilities_addon=to_decimal(troy_utilities),
+    )
+
+    # Build Jaco settlement
+    jaco_items = [
+        MasterMatrixEntry(to_decimal(e.get("amount", 0)), bool(e.get("is_paid", False)), str(e.get("note", "")))
+        for e in (jaco_entries or [])
+    ]
+    jaco = MasterPersonSettlement(name="Jaco", items=jaco_items)
+
+    # Build Dan settlement
+    dan_items = [
+        MasterMatrixEntry(to_decimal(e.get("amount", 0)), bool(e.get("is_paid", False)), str(e.get("note", "")))
+        for e in (dan_entries or [])
+    ]
+    dan = MasterPersonSettlement(name="Dan", items=dan_items)
+
+    return {
+        "troy": {
+            "subtotal": str(troy.subtotal_selected),
+            "bank_transfer": str(troy.total_bank_transfer),
+            "cash": str(troy.total_cash),
+            "spotify": str(troy.spotify_addon),
+            "utilities": str(troy.utilities_addon),
+        },
+        "jaco": {
+            "subtotal": str(jaco.subtotal_selected),
+            "bank_transfer": str(jaco.total_bank_transfer),
+            "cash": str(jaco.total_cash),
+        },
+        "dan": {
+            "subtotal": str(dan.subtotal_selected),
+            "bank_transfer": str(dan.total_bank_transfer),
+            "cash": str(dan.total_cash),
+        },
+    }

@@ -289,3 +289,70 @@ def calculate_total_bills_summary(
         active_bills_count=active_count,
         raw_payload={"bills": bill_details}
     )
+
+
+# ---------------------------------------------------------------------------
+# Color Tokens (from Lists!D1:E8) & Recipient Breakdown (N3:Q6)
+# ---------------------------------------------------------------------------
+COLOR_TOKENS = {
+    "Paid": "#1A7A4A",
+    "Pending": "#E8A020",
+    "Complete": "#2563A8",
+    "Placeholder": "#EBEBEB",
+    "Dan": "#D6EAF8",
+    "Jaco": "#D5F5E3",
+    "Troy": "#FDEBD0",
+}
+
+
+@dataclass
+class RecipientBillRow:
+    name: str
+    rent_to_tita_beth: Decimal
+    utilities_to_dan: Decimal
+    total_bills: Decimal
+    color_hex: str
+
+
+def calculate_recipient_breakdown(
+    rent_amount: Decimal,
+    utilities_amount: Decimal,
+    tenants: Optional[List[str]] = None,
+    rent_payers: Optional[List[str]] = None,
+    utils_payers: Optional[List[str]] = None,
+    custom_overrides: Optional[Dict[str, Dict[str, Decimal]]] = None
+) -> List[RecipientBillRow]:
+    """Calculate Latest Month Breakdown separating Rent (to Tita Beth) from Utilities (to Dan).
+
+    Matches Monthly Bills N3:Q6 logic.
+    """
+    all_tenants = tenants or ["Dan", "Jaco", "Troy"]
+    active_rent = rent_payers if rent_payers is not None else ["Dan", "Troy"]
+    active_utils = utils_payers if utils_payers is not None else ["Troy"]
+
+    rent_per_person = quantize_currency(to_decimal(rent_amount) / Decimal(str(len(active_rent)))) if active_rent else ZERO
+    utils_per_person = quantize_currency(to_decimal(utilities_amount) / Decimal(str(len(active_utils)))) if active_utils else ZERO
+
+    results = []
+    for t in all_tenants:
+        # Check overrides first
+        if custom_overrides and t in custom_overrides:
+            t_rent = custom_overrides[t].get("rent", ZERO)
+            t_utils = custom_overrides[t].get("utils", ZERO)
+        else:
+            t_rent = rent_per_person if t in active_rent else ZERO
+            # Dan does not pay utilities to himself
+            t_utils = utils_per_person if (t in active_utils and t != "Dan") else ZERO
+
+        tot = t_rent + t_utils
+        color = COLOR_TOKENS.get(t, "#E2E8F0")
+
+        results.append(RecipientBillRow(
+            name=t,
+            rent_to_tita_beth=quantize_currency(t_rent),
+            utilities_to_dan=quantize_currency(t_utils),
+            total_bills=quantize_currency(tot),
+            color_hex=color
+        ))
+
+    return results

@@ -41,8 +41,26 @@ window.AppState = {
       recipient_name: "Mama",
       items: [],
       deductions: []
+    },
+    apt_expenses: {
+      house_expenditures: { items: [] },
+      application_expenses: { items: [] },
+      dentist_tracker: { billed_items: [], deductibles: [] },
+      expedition: { items: [] }
+    },
+    chores: {
+      month: "2026-07",
+      entries: []
+    },
+    pajah: {
+      owners: []
+    },
+    budget_extras: {
+      additionals: [],
+      payables: []
     }
   },
+
 
   computed: {
     salaryResult: null,
@@ -81,6 +99,10 @@ window.AppState = {
         if (res.data.groceries.items) this.data.groceries.items = res.data.groceries.items;
         if (res.data.groceries.deductions) this.data.groceries.deductions = res.data.groceries.deductions;
       }
+      if (res.data.apt_expenses) Object.assign(this.data.apt_expenses, res.data.apt_expenses);
+      if (res.data.chores) Object.assign(this.data.chores, res.data.chores);
+      if (res.data.pajah) Object.assign(this.data.pajah, res.data.pajah);
+      if (res.data.budget_extras) Object.assign(this.data.budget_extras, res.data.budget_extras);
     }
     await this.recalculateAll();
   },
@@ -161,3 +183,8 @@ window.AppState = {
     await Bridge.call('save_user_data', this.data);
   }
 };
+
+window.State = {
+  get: () => window.AppState.data
+};
+

@@ -115,4 +115,47 @@ def test_api_get_app_info(api):
     res = api.get_app_info()
     assert res["success"] is True
     assert "version" in res["data"]
-    assert res["data"]["version_badge"] == "Release v0.1.0"
+    assert res["data"]["version_badge"] == "Release v0.2.0"
+
+
+def test_api_apt_expenses_endpoints(api):
+    res_house = api.compute_house_expenditures({"items": [{"item": "Table", "count": "1", "price": "1000", "discount": "200"}]})
+    assert res_house["success"] is True
+    assert res_house["data"]["grand_total"] == "800.00"
+
+    res_dentist = api.compute_dentist_tracker({
+        "billed_items": [{"label": "Braces", "count": "1", "price": "37500.00"}],
+        "deductibles": [{"label": "Payment", "count": "1", "price": "8000.00"}],
+        "app_expenses_subtotal": "2420.00"
+    })
+    assert res_dentist["success"] is True
+    assert res_dentist["data"]["pure_dentist_remaining"] == "29500.00"
+    assert res_dentist["data"]["combined_grand_total"] == "31920.00"
+    assert res_dentist["data"]["progress_bar"] == "██░░░░░░░░"
+
+
+def test_api_chores_and_pajah_endpoints(api):
+    res_chores = api.get_chores_summary({"month": "2026-07"})
+    assert res_chores["success"] is True
+    assert res_chores["data"]["chores_count"] == 16
+
+
+    res_pajah = api.compute_pajah_summary({})
+    assert res_pajah["success"] is True
+    assert res_pajah["data"]["total_owned"] == 8
+    assert res_pajah["data"]["total_potential_sum"] == "10800.00"
+
+
+def test_api_recipient_and_master_matrix_endpoints(api):
+    res_rec = api.compute_recipient_breakdown({"rent_amount": "7000.00", "utilities_amount": "3175.00"})
+    assert res_rec["success"] is True
+    assert len(res_rec["data"]["rows"]) == 3
+
+    res_mat = api.compute_master_matrix({
+        "troy_entries": [{"amount": "1000.00", "is_paid": True}],
+        "spotify_amount": "57.40",
+        "troy_utilities": "3175.00"
+    })
+    assert res_mat["success"] is True
+    assert res_mat["data"]["troy"]["bank_transfer"] == "4233.00"
+

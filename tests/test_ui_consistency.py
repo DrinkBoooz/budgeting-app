@@ -13,27 +13,31 @@ def test_ui_html_exists():
 
 
 def test_canonical_version_badge():
-    """Verify that ui.html displays the canonical version badge Release v0.1.0."""
+    """Verify that ui.html displays the canonical version badge Release v0.2.0."""
     content = UI_HTML_PATH.read_text(encoding="utf-8")
     match = re.search(r'<span class="badge-version">Release v(\d+\.\d+\.\d+)</span>', content)
     assert match is not None, "Missing or invalid canonical version badge in app/ui.html"
     version = match.group(1)
-    assert version == "0.1.0"
+    assert version == "0.2.0"
 
 
 def test_five_functional_tabs_exist():
-    """Verify all 5 tabs exist in navigation and matching tab panes."""
+    """Verify all tabs exist in navigation and matching tab panes."""
     content = UI_HTML_PATH.read_text(encoding="utf-8")
     expected_tabs = [
         "tab-salary",
         "tab-schedule",
         "tab-bills",
         "tab-settlements",
+        "tab-apt-expenses",
+        "tab-chores",
+        "tab-pajah",
         "tab-dashboard",
     ]
     for tab_id in expected_tabs:
         assert f'data-tab="{tab_id}"' in content
         assert f'id="{tab_id}"' in content
+
 
 
 def test_all_linked_assets_exist():

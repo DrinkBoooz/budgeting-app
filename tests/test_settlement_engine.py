@@ -70,3 +70,28 @@ def test_executive_cash_flow_waterfall():
     assert cash_flow.net_surplus == Decimal("18100.00")
     # Savings rate: 18100 / 35000 = 51.71%
     assert cash_flow.savings_rate_pct == Decimal("51.71")
+
+
+def test_master_settlement_matrix():
+    """Verify Calumpang M1:U39 Master Settlement Matrix with Spotify, Utilities, and ROUNDUP."""
+    from app.core.settlement_engine import calculate_master_settlement_matrix
+
+    troy_entries = [
+        {"amount": "500.00", "is_paid": True, "note": "Gas"},
+        {"amount": "1139.00", "is_paid": True, "note": "SnR Food"},
+        {"amount": "300.00", "is_paid": False, "note": "Pending laundry"},
+    ]
+    # Paid items: 500 + 1139 = 1639.
+    # Add-ons: Spotify 57.40 + Utilities 3175 = 3232.40.
+    # Subtotal selected: 1639 + 3232.40 = 4871.40.
+    # Bank transfer = ROUNDUP(4871.40, 0) = 4872.00.
+    res = calculate_master_settlement_matrix(
+        troy_entries=troy_entries,
+        spotify_amount=Decimal("57.40"),
+        troy_utilities=Decimal("3175.00"),
+    )
+    assert res["troy"]["subtotal"] == "4871.40"
+    assert res["troy"]["bank_transfer"] == "4872.00"
+    assert res["troy"]["spotify"] == "57.40"
+    assert res["troy"]["utilities"] == "3175.00"
+

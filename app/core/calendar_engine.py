@@ -10,31 +10,30 @@ from decimal import Decimal
 from .decimal_utils import to_decimal, quantize_currency, ZERO
 
 # ---------------------------------------------------------------------------
-# Default Statutory Philippine Holidays (Nationwide Observances)
+# Default Statutory Philippine Holidays (21 Workbook Observances)
 # ---------------------------------------------------------------------------
 DEFAULT_PHILIPPINE_HOLIDAYS_2026 = [
-    # 2026 Regular & Special Non-Working Holidays
-    date(2026, 1, 1),   # New Year's Day
-    date(2026, 2, 17),  # Chinese New Year
-    date(2026, 2, 25),  # EDSA People Power Anniversary
-    date(2026, 3, 20),  # Eid'l Fitr (Estimated)
-    date(2026, 4, 2),   # Maundy Thursday
-    date(2026, 4, 3),   # Good Friday
-    date(2026, 4, 4),   # Black Saturday
-    date(2026, 4, 9),   # Araw ng Kagitingan (Day of Valor)
-    date(2026, 5, 1),   # Labor Day
-    date(2026, 5, 27),  # Eid'l Adha (Estimated)
-    date(2026, 6, 12),  # Independence Day
-    date(2026, 8, 21),  # Ninoy Aquino Day
-    date(2026, 8, 31),  # National Heroes Day
-    date(2026, 11, 1),  # All Saints' Day
-    date(2026, 11, 2),  # All Souls' Day (Special Non-Working)
-    date(2026, 11, 30), # Bonifacio Day
-    date(2026, 12, 8),  # Feast of the Immaculate Conception
-    date(2026, 12, 24), # Christmas Eve
-    date(2026, 12, 25), # Christmas Day
-    date(2026, 12, 30), # Rizal Day
-    date(2026, 12, 31), # Last Day of the Year
+    date(2026, 8, 21),   # Ninoy Aquino Day
+    date(2026, 8, 31),   # National Heroes Day
+    date(2026, 11, 1),   # All Saints' Day
+    date(2026, 11, 2),   # All Souls' Day
+    date(2026, 11, 30),  # Bonifacio Day
+    date(2026, 12, 8),   # Feast of the Immaculate Conception
+    date(2026, 12, 24),  # Christmas Eve
+    date(2026, 12, 25),  # Christmas Day
+    date(2026, 12, 30),  # Rizal Day
+    date(2026, 12, 31),  # Last Day of the Year
+    date(2027, 1, 1),    # New Year's Day
+    date(2027, 2, 6),    # Chinese New Year
+    date(2027, 2, 25),   # EDSA People Power Revolution Anniversary
+    date(2027, 3, 9),    # Eid'l Fitr
+    date(2027, 3, 10),   # Eid'l Fitr
+    date(2027, 3, 22),   # Emilio Aguinaldo Day (Local Cavite Province)
+    date(2027, 3, 25),   # Maundy Thursday
+    date(2027, 3, 26),   # Good Friday
+    date(2027, 3, 27),   # Black Saturday
+    date(2027, 4, 9),    # Araw ng Kagitingan (Day of Valor)
+    date(2027, 5, 1),    # Labor Day
 ]
 
 DAY_MASKS = {
@@ -230,7 +229,8 @@ class CalendarEngine:
 # ---------------------------------------------------------------------------
 # High-Level Dataclasses & API Functions
 # ---------------------------------------------------------------------------
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
 
 
 @dataclass
@@ -257,15 +257,45 @@ class CutoffBreakdown:
     monthly_total_units: Decimal
     monthly_gross_pay: Decimal
     monthly_living_budget: Decimal
-    raw_payload: Dict[str, Any]
+    lost_units_due_to_holidays: Decimal = ZERO
+    lost_cash_due_to_holidays: Decimal = ZERO
+    one_week_base_allowance: Decimal = ZERO
+    full_month_allowance: Decimal = ZERO
+    raw_payload: Dict[str, Any] = field(default_factory=dict)
 
 
-def generate_philippine_holidays(year: int = 2026) -> List[Holiday]:
+PHILIPPINE_HOLIDAYS_FULL: List[Holiday] = [
+    Holiday(date(2026, 8, 21), "Ninoy Aquino Day", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2026, 8, 31), "National Heroes Day", "Regular Holiday", "Nationwide"),
+    Holiday(date(2026, 11, 1), "All Saints' Day", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2026, 11, 2), "All Souls' Day", "Special Working Day", "Nationwide"),
+    Holiday(date(2026, 11, 30), "Bonifacio Day", "Regular Holiday", "Nationwide"),
+    Holiday(date(2026, 12, 8), "Feast of the Immaculate Conception", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2026, 12, 24), "Christmas Eve", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2026, 12, 25), "Christmas Day", "Regular Holiday", "Nationwide"),
+    Holiday(date(2026, 12, 30), "Rizal Day", "Regular Holiday", "Nationwide"),
+    Holiday(date(2026, 12, 31), "Last Day of the Year", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2027, 1, 1), "New Year's Day", "Regular Holiday", "Nationwide"),
+    Holiday(date(2027, 2, 6), "Chinese New Year", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2027, 2, 25), "EDSA People Power Revolution Anniversary", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2027, 3, 9), "Eid'l Fitr (Day 1)", "Regular Holiday", "Nationwide"),
+    Holiday(date(2027, 3, 10), "Eid'l Fitr (Day 2)", "Regular Holiday", "Nationwide"),
+    Holiday(date(2027, 3, 22), "Emilio Aguinaldo Day", "Special Non-Working Day", "Cavite"),
+    Holiday(date(2027, 3, 25), "Maundy Thursday", "Regular Holiday", "Nationwide"),
+    Holiday(date(2027, 3, 26), "Good Friday", "Regular Holiday", "Nationwide"),
+    Holiday(date(2027, 3, 27), "Black Saturday", "Special Non-Working Day", "Nationwide"),
+    Holiday(date(2027, 4, 9), "Araw ng Kagitingan (Day of Valor)", "Regular Holiday", "Nationwide"),
+    Holiday(date(2027, 5, 1), "Labor Day", "Regular Holiday", "Nationwide"),
+]
+
+
+def generate_philippine_holidays(year: Optional[int] = None) -> List[Holiday]:
     """Return default statutory Philippine holidays for the given year."""
-    return [
-        Holiday(d, f"PH Holiday {d.strftime('%b %d')}")
-        for d in DEFAULT_PHILIPPINE_HOLIDAYS_2026
-    ]
+    if year:
+        matching = [h for h in PHILIPPINE_HOLIDAYS_FULL if h.date.year == year]
+        if matching:
+            return matching
+    return list(PHILIPPINE_HOLIDAYS_FULL)
 
 
 DAY_NAME_TO_INDEX = {
@@ -288,7 +318,7 @@ def calculate_cutoff_units(
     daily_transport_rate: Decimal = Decimal("150.00"),
     holidays: Optional[List[Holiday] | List[date]] = None,
 ) -> CutoffBreakdown:
-    """Calculate bi-weekly teaching units, gross pay, and living budget."""
+    """Calculate bi-weekly teaching units, gross pay, lost holiday units, and living budget."""
     holiday_dates = []
     if holidays:
         for h in holidays:
@@ -318,11 +348,29 @@ def calculate_cutoff_units(
         hourly_rate=hourly_rate,
     )
 
+    # Calculate lost units due to holidays: SUMPRODUCT(Holidays_Per_Weekday, Units_Per_Weekday)
+    lost_units = ZERO
+    for d_idx in range(7):
+        units = sched_map.get(d_idx, ZERO)
+        mask = DAY_MASKS[d_idx]
+        last_day = calendar.monthrange(year, month)[1]
+        cal_days = networkdays_intl(date(year, month, 1), date(year, month, last_day), mask, holidays=None)
+        work_days = networkdays_intl(date(year, month, 1), date(year, month, last_day), mask, holidays=holiday_dates)
+        holidays_on_day = Decimal(str(cal_days - work_days))
+        lost_units += (holidays_on_day * units)
+
+    rate = to_decimal(hourly_rate)
+    lost_cash = quantize_currency(lost_units * rate)
+
     daily_allowance = to_decimal(daily_food_rate) + to_decimal(daily_transport_rate)
     c1_days = payload["cutoff_1"]["working_days"]
     c2_days = payload["cutoff_2"]["working_days"]
     c1_budget = quantize_currency(Decimal(str(c1_days)) * daily_allowance)
     c2_budget = quantize_currency(Decimal(str(c2_days)) * daily_allowance)
+
+    one_week_base = quantize_currency(to_decimal(daily_food_rate) + to_decimal(daily_transport_rate))
+    full_month_budget = c1_budget + c2_budget
+
 
     return CutoffBreakdown(
         year=year,
@@ -338,6 +386,10 @@ def calculate_cutoff_units(
         monthly_working_days=payload["month_totals"]["working_days"],
         monthly_total_units=payload["month_totals"]["units"],
         monthly_gross_pay=payload["month_totals"]["gross_pay"],
-        monthly_living_budget=c1_budget + c2_budget,
+        monthly_living_budget=full_month_budget,
+        lost_units_due_to_holidays=lost_units,
+        lost_cash_due_to_holidays=lost_cash,
+        one_week_base_allowance=one_week_base,
+        full_month_allowance=full_month_budget,
         raw_payload=payload,
     )

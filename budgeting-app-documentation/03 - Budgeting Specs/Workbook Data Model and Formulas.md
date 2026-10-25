@@ -138,6 +138,82 @@ Computes rolling expenditure trends for water, power, and internet:
 NetTransfer = SUM(GroceriesAndObligations) - SUM(DeductionsAndCredits)
 ```
 
+### 3.6 Apartment Expenditures & Sub-Ledgers (`Apt Expenses`)
+`Apt Expenses` coordinates six specialized sub-ledgers managing shared furnishings, professional application fees, dental orthodontics, and trip cost distribution:
+
+1. **House / IKEA Expenditures (`A1:G22`)**:
+   Itemized inventory with applied promotional or cardholder discounts:
+   ```excel
+   TotalPrice = (Count * Price) - Discount
+   GrandTotal = SUM(E3:E22)  # Benchmark: ₱4,675.00
+   ```
+2. **Application Expenses (`A33:E42`)**:
+   Mandatory pre-employment/board credentials (Drug Test, Neuro Psych, NBI, TOR, Medical):
+   ```excel
+   Subtotal = SUM(D34:D40)   # Benchmark: ₱2,420.00
+   ```
+3. **Dentist & Braces Tracker (`A44:E67`)**:
+   Orthodontic contract billing less incremental installment deductibles:
+   ```excel
+   TotalBilled = SUM(D46:D56)       # Benchmark: ₱37,500.00
+   TotalPaid = -SUM(D58:D64)        # Benchmark: ₱8,000.00 (displayed as negative deductible)
+   PureRemaining = TotalBilled - TotalPaid  # ₱29,500.00
+   CombinedBalance (D67) = PureRemaining + ApplicationExpenses  # ₱31,920.00
+   ProgressPct = TotalPaid / TotalBilled  # 21.33% -> Visual Bar: ██░░░░░░░░
+   ```
+4. **Group & Personal Mini-Ledgers**:
+   - `Maple Grove SnR Food` (`A69:E79`): Itemized grocery run (Benchmark: `₱746.00`).
+   - `Ate Joy` (`A99:E108`) & `Lorraine` (`A113:E122`): Reimbursable line items (Benchmark: `₱250.00`).
+5. **Dynamic N-Person Expedition Ledger (`A126:F135`)**:
+   Shared trip costs (gas, tollways, food) distributed dynamically among variable group sizes:
+   ```excel
+   ItemShare = IFERROR(ROUNDUP((Price * Count) / Divisor, 0), 0)  # Benchmark Subtotal: ₱968.00
+   ```
+
+### 3.7 Roommate Maintenance Logistics (`Chore Chart`)
+Tracks household task allocations across 5 discrete residential zones (16 chores):
+- **Zones**: Kitchen (5), Living Room (3), Bedroom (3), Bathroom (2), Maintenance (3).
+- **Recurrence Frequencies**: *Daily, Every other day, Every after use, Weekly, Every 2 weeks, Monthly*.
+- **Daily Assignee Matrix**: Columns for Days 1 through 31 tracked with initials (`D` = Dan, `J` = Jaco, `T` = Troy).
+- **Live Roommate Completion Counters**:
+  ```excel
+  RoommateCompleted = COUNTIF(C5:AN24, "D")
+  ```
+
+### 3.8 Academic Regalia Asset Rental (`Pajah Rent`)
+Toga ("Pajah") rental tracking system for 8 co-owners (`Dan, Christian, Harvin, Jiom, Josh, Noella, Rj, Troy`):
+```excel
+Pictorial_Fprice = Price_Pictorial (₱500) + Dan_Addon (₱100) = ₱600.00
+Grad_Fprice = Price_Grad (₱650) + Dan_Addon (₱100) = ₱750.00
+Sum_Package = Pictorial_Fprice + Grad_Fprice = ₱1,350.00
+Owner_Revenue = Sum_Package * Active_Rentals
+```
+
+### 3.9 Master Peer Settlement Matrix (`Calumpang!M1:U39`)
+Multi-party reconciliation matrix between Dan, Jaco, and Troy:
+- Integrates Spotify subscription share (`₱57.40`) and Troy's monthly utility balance from `Monthly Bills!P6` (`₱3,175.00`).
+- **Bank Transfer Calculation**:
+  ```excel
+  TotalBankTransfer = ROUNDUP(Subtotal - Deductibles, 0)  # Benchmark: ₱4,872.00
+  ```
+- **Cash Settlements (`M35:S39`)**: Independent cash ledger for non-bank peer transfers.
+
+### 3.10 Holiday Unit Loss & Allowance Nuances (`Current Budget`)
+- **Lost Cash/Units from Holidays (`A5:C5`)**:
+  ```excel
+  LostUnits = SUMPRODUCT(Holidays_Per_Weekday, Units_Per_Weekday)
+  LostCash = LostUnits * Hourly_Rate
+  ```
+- **Everyday Living Allowance**:
+  - **1-Week Base Living Allowance (`B14:B15`)**: Base weekly sum (`₱165 + ₱300 = ₱465.00`).
+  - **Monthly Working-Day Living Allowance (`M17`)**: Working days multiplied by daily transit and food rates (`₱2,015.00`).
+- **Payables & Additionals Flow**:
+  ```excel
+  MoneyAvailableAfterUtility = TotalGross - UtilitiesAndRent
+  MoneyAfterAdditionals = MoneyAvailableAfterUtility + SUM(Additionals)
+  MoneyAfterPayable = MoneyAfterAdditionals - SUM(Payables)
+  ```
+
 ---
 
 ## 4. Proposed Desktop Software Data Model

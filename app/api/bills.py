@@ -10,6 +10,8 @@ from app.core.bills_engine import (
     calculate_bill_split,
     calculate_rolling_utility_average,
     calculate_total_bills_summary,
+    calculate_recipient_breakdown,
+    COLOR_TOKENS,
     UtilityBill,
 )
 from app.core.decimal_utils import to_decimal
@@ -64,6 +66,41 @@ class BillsAPI(BaseAPI):
         except Exception as e:
             return self.error(f"Failed to calculate bills summary: {str(e)}")
 
+    def compute_recipient_breakdown(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute Latest Month Breakdown: Rent (Tita Beth) vs Utilities (Dan) with color tokens."""
+        try:
+            rent_amount = to_decimal(payload.get("rent_amount", "7000.00"))
+            utilities_amount = to_decimal(payload.get("utilities_amount", "3175.00"))
+            tenants = payload.get("tenants", ["Dan", "Jaco", "Troy"])
+            rent_payers = payload.get("rent_payers", ["Dan", "Troy"])
+            utils_payers = payload.get("utils_payers", ["Troy"])
+            custom_overrides = payload.get("custom_overrides")
+
+            rows = calculate_recipient_breakdown(
+                rent_amount=rent_amount,
+                utilities_amount=utilities_amount,
+                tenants=tenants,
+                rent_payers=rent_payers,
+                utils_payers=utils_payers,
+                custom_overrides=custom_overrides,
+            )
+
+            return self.success({
+                "rows": [
+                    {
+                        "name": r.name,
+                        "rent_to_tita_beth": str(r.rent_to_tita_beth),
+                        "utilities_to_dan": str(r.utilities_to_dan),
+                        "total_bills": str(r.total_bills),
+                        "color_hex": r.color_hex,
+                    }
+                    for r in rows
+                ],
+                "color_tokens": COLOR_TOKENS,
+            })
+        except Exception as e:
+            return self.error(f"Failed to calculate recipient breakdown: {str(e)}")
+
     def compute_rolling_averages(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate 3-month rolling averages for bills."""
         try:
@@ -83,3 +120,4 @@ class BillsAPI(BaseAPI):
             return self.success(averages)
         except Exception as e:
             return self.error(f"Failed to calculate rolling averages: {str(e)}")
+

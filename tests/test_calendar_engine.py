@@ -63,3 +63,36 @@ def test_cutoff_units_breakdown():
     assert breakdown.cutoff1_total_units > Decimal("0")
     assert breakdown.monthly_total_units == breakdown.cutoff1_total_units + breakdown.cutoff2_total_units
     assert breakdown.monthly_living_budget == breakdown.cutoff1_living_budget + breakdown.cutoff2_living_budget
+
+
+def test_philippine_holidays_21_entries():
+    """Verify full 21 holidays from Holidays!A2:E22 including Emilio Aguinaldo Day."""
+    from app.core.calendar_engine import generate_philippine_holidays, DEFAULT_PHILIPPINE_HOLIDAYS_2026
+
+    # Verify at least 21 holidays are registered
+    assert len(DEFAULT_PHILIPPINE_HOLIDAYS_2026) >= 21
+    holidays = generate_philippine_holidays(2027)
+    aguinaldo = [h for h in holidays if "Aguinaldo" in h.name]
+    assert len(aguinaldo) == 1
+    assert aguinaldo[0].date == date(2027, 3, 22)
+    assert aguinaldo[0].scope == "Cavite"
+
+
+def test_holiday_loss_and_allowances():
+    """Verify lost units due to holidays and 1-week base allowance (₱465)."""
+    daily_units = {"Mon": Decimal("9"), "Wed": Decimal("10")}
+    # August 2026: Aug 31 is National Heroes Day (Monday)
+    breakdown = calculate_cutoff_units(
+        year=2026,
+        month=8,
+        daily_units=daily_units,
+        hourly_rate=Decimal("198.85"),
+        daily_food_rate=Decimal("300.00"),
+        daily_transport_rate=Decimal("165.00"),
+    )
+    # Aug 31 lost Monday = 9 units lost * 198.85
+    assert breakdown.lost_units_due_to_holidays == Decimal("9.00")
+    assert breakdown.lost_cash_due_to_holidays == Decimal("1789.65")
+    # 1-week base allowance: 165 + 300 = 465.00
+    assert breakdown.one_week_base_allowance == Decimal("465.00")
+

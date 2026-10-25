@@ -55,6 +55,7 @@ graph TD
 - [[User Data Privacy and Local Storage Guide]]: Architectural guidelines ensuring zero cloud telemetry, 100% offline local storage, and strict separation between code and personal finances.
 
 ### 05 - Releases & Changelog
+- `[[v0.2.0]]`: 100% workbook fidelity, Apt Expenses (6 sub-ledgers), Chore Chart, Pajah Rent, Master Settlement Matrix, and holiday loss deductions.
 - `[[v0.1.0]]`: Initial scaffold, reverse-engineered specifications, and repository initialization.
 
 ### 06 - Development & Build Packaging

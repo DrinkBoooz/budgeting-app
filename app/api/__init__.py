@@ -11,10 +11,23 @@ from app.api.config import ConfigAPI
 from app.api.salary import SalaryAPI
 from app.api.settlements import SettlementsAPI
 from app.api.system import SystemAPI
+from app.api.apt_expenses import AptExpensesAPI
+from app.api.chores import ChoresAPI
+from app.api.pajah import PajahAPI
 from app.core.storage import StorageService
 
 
-class ScriptAPI(SalaryAPI, BudgetAPI, BillsAPI, SettlementsAPI, ConfigAPI, SystemAPI):
+class ScriptAPI(
+    SalaryAPI,
+    BudgetAPI,
+    BillsAPI,
+    SettlementsAPI,
+    AptExpensesAPI,
+    ChoresAPI,
+    PajahAPI,
+    ConfigAPI,
+    SystemAPI,
+):
     """Composite API exposed to PyWebView frontend as `window.pywebview.api`."""
 
     def __init__(self, window=None, storage: Optional[StorageService] = None):
@@ -24,6 +37,9 @@ class ScriptAPI(SalaryAPI, BudgetAPI, BillsAPI, SettlementsAPI, ConfigAPI, Syste
         BudgetAPI.__init__(self, window)
         BillsAPI.__init__(self, window)
         SettlementsAPI.__init__(self, window)
+        AptExpensesAPI.__init__(self, window)
+        ChoresAPI.__init__(self, window)
+        PajahAPI.__init__(self, window)
         ConfigAPI.__init__(self, window, st)
         SystemAPI.__init__(self, window, st)
 
@@ -34,8 +50,23 @@ class ScriptAPI(SalaryAPI, BudgetAPI, BillsAPI, SettlementsAPI, ConfigAPI, Syste
         BudgetAPI.set_window(self, window)
         BillsAPI.set_window(self, window)
         SettlementsAPI.set_window(self, window)
+        AptExpensesAPI.set_window(self, window)
+        ChoresAPI.set_window(self, window)
+        PajahAPI.set_window(self, window)
         ConfigAPI.set_window(self, window)
         SystemAPI.set_window(self, window)
 
 
-__all__ = ["ScriptAPI", "BaseAPI", "SalaryAPI", "BudgetAPI", "BillsAPI", "SettlementsAPI", "ConfigAPI", "SystemAPI"]
+__all__ = [
+    "ScriptAPI",
+    "BaseAPI",
+    "SalaryAPI",
+    "BudgetAPI",
+    "BillsAPI",
+    "SettlementsAPI",
+    "AptExpensesAPI",
+    "ChoresAPI",
+    "PajahAPI",
+    "ConfigAPI",
+    "SystemAPI",
+]

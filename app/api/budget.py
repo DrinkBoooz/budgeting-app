@@ -79,6 +79,10 @@ class BudgetAPI(BaseAPI):
                     "gross_pay": str(breakdown.monthly_gross_pay),
                     "living_budget": str(breakdown.monthly_living_budget),
                 },
+                "lost_units_due_to_holidays": str(breakdown.lost_units_due_to_holidays),
+                "lost_cash_due_to_holidays": str(breakdown.lost_cash_due_to_holidays),
+                "one_week_base_allowance": str(breakdown.one_week_base_allowance),
+                "full_month_allowance": str(breakdown.full_month_allowance),
                 "day_breakdowns": [
                     {
                         "day_name": d["day_name"],
@@ -95,6 +99,43 @@ class BudgetAPI(BaseAPI):
             return self.success(res)
         except Exception as e:
             return self.error(f"Failed to calculate cutoff schedule: {str(e)}")
+
+    def compute_additionals_and_payables(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute Current Budget Money After Additionals and Payables.
+
+        Money after Utility = Net Salary - Living Expenses - Monthly Bills
+        Money after Additionals = Money after Utility + SUM(Additionals)
+        Money after Payables = Money after Additionals - SUM(Payables)
+        """
+        try:
+            money_after_utility = to_decimal(payload.get("money_after_utility", 0))
+            additionals_list = payload.get("additionals", [])
+            payables_list = payload.get("payables", [])
+
+            total_additionals = sum(
+                (to_decimal(a.get("amount", 0)) for a in additionals_list),
+                Decimal("0")
+            )
+            total_payables = sum(
+                (to_decimal(p.get("amount", 0)) for p in payables_list),
+                Decimal("0")
+            )
+
+            money_after_additionals = money_after_utility + total_additionals
+            money_after_payables = money_after_additionals - total_payables
+
+            return self.success({
+                "money_after_utility": str(money_after_utility),
+                "total_additionals": str(total_additionals),
+                "money_after_additionals": str(money_after_additionals),
+                "total_payables": str(total_payables),
+                "money_after_payables": str(money_after_payables),
+                "additionals": additionals_list,
+                "payables": payables_list,
+            })
+        except Exception as e:
+            return self.error(f"Failed to calculate additionals and payables: {str(e)}")
+
 
     def get_default_holidays(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Fetch statutory holidays for a given year."""

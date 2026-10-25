@@ -22,7 +22,7 @@
         <div class="brand-icon">💰</div>
         <div class="brand-title">
           Budgeting & Salary Suite
-          <span class="badge-version">Release v0.1.0</span>
+          <span class="badge-version">Release v0.2.0</span>
         </div>
       </div>
 
@@ -60,11 +60,24 @@
         <span class="tab-icon">🤝</span>
         <span>Peer Settlements & Groceries</span>
       </button>
+      <button class="tab-btn" data-tab="tab-apt-expenses">
+        <span class="tab-icon">🛋️</span>
+        <span>Apt & Dentist Expenses</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-chores">
+        <span class="tab-icon">🧹</span>
+        <span>Chore Chart</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-pajah">
+        <span class="tab-icon">🎓</span>
+        <span>Pajah Toga Rentals</span>
+      </button>
       <button class="tab-btn" data-tab="tab-dashboard">
         <span class="tab-icon">📊</span>
         <span>Executive Dashboard</span>
       </button>
     </nav>
+
 
     <!-- Main Workspace Panes -->
     <main class="main-content">
@@ -442,8 +455,53 @@
               </table>
             </div>
           </div>
+
+          <!-- Latest Month Breakdown Table (N3:Q6) -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📋 Latest Month Breakdown (Recipient Separation: N3:Q6)</div>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span class="badge" style="background-color: #1A7A4A; color: white;">Paid</span>
+                <span class="badge" style="background-color: #E8A020; color: white;">Pending</span>
+                <span class="badge" style="background-color: #2563A8; color: white;">Complete</span>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Roommate / Tenant</th>
+                    <th class="text-right">Rent (to Tita Beth)</th>
+                    <th class="text-right">Utilities (to Dan)</th>
+                    <th class="text-right">Total Individual Bills</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-recipient-breakdown">
+                  <tr>
+                    <td><span class="badge" style="background-color: #D6EAF8; color: #1e293b; font-weight: 600;">Dan</span></td>
+                    <td class="text-right mono">₱3,500.00</td>
+                    <td class="text-right mono text-secondary">₱0.00</td>
+                    <td class="text-right mono font-bold">₱3,500.00</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge" style="background-color: #D5F5E3; color: #1e293b; font-weight: 600;">Jaco</span></td>
+                    <td class="text-right mono text-secondary">₱0.00</td>
+                    <td class="text-right mono text-secondary">₱0.00</td>
+                    <td class="text-right mono font-bold">₱0.00</td>
+                  </tr>
+                  <tr>
+                    <td><span class="badge" style="background-color: #FDEBD0; color: #1e293b; font-weight: 600;">Troy</span></td>
+                    <td class="text-right mono">₱3,500.00</td>
+                    <td class="text-right mono text-accent">₱3,175.00</td>
+                    <td class="text-right mono font-bold text-accent">₱6,675.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
+
 
       <!-- TAB 4: PEER SETTLEMENTS & GROCERIES -->
       <section id="tab-settlements" class="tab-pane">
@@ -532,7 +590,89 @@
             </div>
           </div>
         </div>
+
+        <!-- Master Settlement Matrix Card (Calumpang M1:U39) -->
+        <div class="card" style="margin-top: 1.25rem;">
+          <div class="card-header">
+            <div class="card-title">👑 Calumpang Master Settlement Matrix (M1:U39)</div>
+            <span class="badge badge-info">Multi-Block Peer Settlement</span>
+          </div>
+          <div class="grid-3">
+            <!-- Troy Settlement Block -->
+            <div class="stat-card" style="display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-card-hover);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 1rem;"><span class="badge" style="background: #FDEBD0; color: #1e293b;">Troy</span> to Pay</strong>
+                <span class="badge badge-success">Bank: ₱4,872.00</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Active Items Subtotal:</span>
+                <span class="mono font-bold">₱1,639.00</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Spotify Share:</span>
+                <span class="mono font-bold text-accent">+₱57.40</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Utilities Share (P6):</span>
+                <span class="mono font-bold text-accent">+₱3,175.00</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-color); padding-top: 0.25rem;">
+                <span>Subtotal Selected:</span>
+                <span class="mono font-bold">₱4,871.40</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.1); padding: 0.4rem; border-radius: 4px;">
+                <span class="small font-bold text-emerald-400">Total Bank Transfer (=ROUNDUP):</span>
+                <span class="mono font-bold text-emerald-400">₱4,872.00</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Total Cash (M35:S39):</span>
+                <span class="mono">₱0.00</span>
+              </div>
+            </div>
+
+            <!-- Jaco Settlement Block -->
+            <div class="stat-card" style="display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-card-hover);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 1rem;"><span class="badge" style="background: #D5F5E3; color: #1e293b;">Jaco</span> to Pay</strong>
+                <span class="badge badge-secondary">Settled</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Active Items Subtotal:</span>
+                <span class="mono font-bold">₱0.00</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Utilities & Rent:</span>
+                <span class="mono">Paid Direct</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 0.4rem; border-radius: 4px; margin-top: auto;">
+                <span class="small font-bold">Total Bank Transfer:</span>
+                <span class="mono font-bold">₱0.00</span>
+              </div>
+            </div>
+
+            <!-- Dan to Pay / DJ GASTOS -->
+            <div class="stat-card" style="display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-card-hover);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="font-size: 1rem;"><span class="badge" style="background: #D6EAF8; color: #1e293b;">Dan</span> Payables (DJ GASTOS)</strong>
+                <span class="badge badge-warning">Feeds Budget P4:R29</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Monji Split (E1:G27):</span>
+                <span class="mono">₱0.00</span>
+              </div>
+              <div class="small text-secondary" style="display: flex; justify-content: space-between;">
+                <span>Con Split (L42:R57):</span>
+                <span class="mono">₱0.00</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-card); padding: 0.4rem; border-radius: 4px; margin-top: auto;">
+                <span class="small font-bold">Dan Total Payables:</span>
+                <span class="mono font-bold text-warning">₱0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
+
 
       <!-- TAB 5: EXECUTIVE CASH FLOW DASHBOARD -->
       <section id="tab-dashboard" class="tab-pane">
@@ -604,10 +744,265 @@
               </table>
             </div>
           </div>
+
+          <!-- Dashboard Row: Dentist Tracker & Roommate Chores Live Cards -->
+          <div class="grid-2">
+            <!-- Dentist Tracker Visual Card (Dashboard A12:E14) -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🦷 Dentist & Braces Progress (Dashboard!A12:E14)</div>
+                <span class="badge badge-primary">Orthodontics</span>
+              </div>
+              <div style="font-family: monospace; font-size: 1.25rem; letter-spacing: 2px; color: var(--color-emerald-400); margin: 0.5rem 0;" id="dentist-progress-bar-display">
+                ██░░░░░░░░
+              </div>
+              <div class="small text-secondary" id="dentist-progress-pct-display" style="margin-bottom: 0.75rem;">
+                21.33% Paid (3 payments made)
+              </div>
+              <div class="grid-2">
+                <div class="stat-card">
+                  <span class="lbl">Pure Dentist Remaining</span>
+                  <span id="dentist-pure-remaining" class="val text-emerald-400">₱29,500.00</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">Combined D67 Balance (+App)</span>
+                  <span id="dentist-combined-balance" class="val text-cyan-400">₱31,920.00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Roommate Chore Count Live Widget -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🧹 Household Chore Completions (=COUNTIF)</div>
+                <span class="badge badge-info">July 2026</span>
+              </div>
+              <div class="grid-3" style="margin-top: 0.5rem;">
+                <div class="stat-card text-center">
+                  <span class="lbl"><span class="badge" style="background: #D6EAF8; color: #1e293b;">Dan</span> Completed</span>
+                  <span id="chore-count-dan" class="val" style="font-size: 1.5rem;">3</span>
+                </div>
+                <div class="stat-card text-center">
+                  <span class="lbl"><span class="badge" style="background: #D5F5E3; color: #1e293b;">Jaco</span> Completed</span>
+                  <span id="chore-count-jaco" class="val" style="font-size: 1.5rem;">2</span>
+                </div>
+                <div class="stat-card text-center">
+                  <span class="lbl"><span class="badge" style="background: #FDEBD0; color: #1e293b;">Troy</span> Completed</span>
+                  <span id="chore-count-troy" class="val" style="font-size: 1.5rem;">2</span>
+                </div>
+              </div>
+              <div class="small text-secondary text-right" style="margin-top: 0.75rem;">
+                Total Household Chores Logged: <strong id="chore-count-total">7</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: APT EXPENSES & DENTIST TRACKER -->
+      <section id="tab-apt-expenses" class="tab-pane">
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0;">🛋️ Apartment Expenditures & Sub-Ledgers</h2>
+            <button id="btn-refresh-apt" class="btn btn-secondary btn-sm">🔄 Recalculate Sub-Ledgers</button>
+          </div>
+
+          <!-- Top 2-Column: House & Application Expenses -->
+          <div class="grid-2">
+            <!-- House / IKEA Expenditures (A1:G22) -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🏠 House & IKEA Expenditures (A1:G22)</div>
+                <span id="house-expenditures-total" class="badge badge-success font-bold" style="font-size: 0.95rem;">₱4,675.00</span>
+              </div>
+              <div class="small text-secondary" style="margin-bottom: 0.5rem;">Formula: <code>=(Count*Price)-Discount</code> (Grand Total: ₱4,675)</div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th class="text-right">Qty</th>
+                      <th class="text-right">Price</th>
+                      <th class="text-right">Disc.</th>
+                      <th class="text-right">Total</th>
+                      <th>Note</th>
+                    </tr>
+                  </thead>
+                  <tbody id="house-expenditures-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Application Expenses (A33:E42) -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">📄 Application Expenses (A33:E42)</div>
+                <span id="app-expenses-total" class="badge badge-info font-bold" style="font-size: 0.95rem;">₱2,420.00</span>
+              </div>
+              <div class="small text-secondary" style="margin-bottom: 0.5rem;">Pre-employment tests: Drug Test, Neuro Psych, NBI, TOR, Medical = ₱2,420</div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Label</th>
+                      <th class="text-right">Qty</th>
+                      <th class="text-right">Price</th>
+                      <th class="text-right">Subtotal</th>
+                      <th>Note</th>
+                    </tr>
+                  </thead>
+                  <tbody id="app-expenses-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom 2-Column: Dentist Tracker & Expedition Split -->
+          <div class="grid-2">
+            <!-- Dentist & Braces Full Tracker (A44:E67) -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🦷 Dentist & Braces Ledger (A44:E67)</div>
+                <div style="display: flex; gap: 0.5rem;">
+                  <span class="badge badge-primary">Billed: <span id="dentist-total-billed">₱37,500.00</span></span>
+                  <span class="badge badge-success">Paid: <span id="dentist-total-paid">-₱8,000.00</span></span>
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Procedure / Payment Record</th>
+                      <th class="text-right">Amount (₱)</th>
+                      <th>Notes & Method</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dentist-ledger-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Noella & James Expedition Split (A126:F135) -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🚗 Noella & James Expedition Split (A126:F135)</div>
+                <span id="expedition-total" class="badge badge-success font-bold" style="font-size: 0.95rem;">₱968.00</span>
+              </div>
+              <div class="small text-secondary" style="margin-bottom: 0.5rem;">Formula: <code>=IFERROR(ROUNDUP(Price*Count/Divisor, 0), 0)</code> across 1, 3, or 5 people</div>
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Shared Item</th>
+                      <th class="text-right">Price</th>
+                      <th class="text-center">Divisor</th>
+                      <th class="text-right">Subtotal</th>
+                      <th>Note</th>
+                    </tr>
+                  </thead>
+                  <tbody id="expedition-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: CHORE CHART -->
+      <section id="tab-chores" class="tab-pane">
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0;">🧹 Household Chore Chart & Rotation</h2>
+              <div class="small text-secondary">Tracking 15 chores across 5 household zones with daily initials (D: Dan, J: Jaco, T: Troy)</div>
+            </div>
+            <button id="btn-refresh-chores" class="btn btn-secondary btn-sm">🔄 Refresh Chores</button>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📋 5-Zone Household Chores Matrix</div>
+              <span class="badge badge-info">15 Chores</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Zone</th>
+                    <th>Chore Name</th>
+                    <th>Frequency</th>
+                    <th>Active Daily Logged Assignments</th>
+                  </tr>
+                </thead>
+                <tbody id="chores-matrix-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 8: PAJAH TOGA RENTALS -->
+      <section id="tab-pajah" class="tab-pane">
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0;">🎓 Graduation & Pictorial Toga ("Pajah") Rentals</h2>
+              <div class="small text-secondary">Tracking 8 toga owners, Dan add-on pricing (+₱100), and rental package distribution</div>
+            </div>
+            <button id="btn-refresh-pajah" class="btn btn-secondary btn-sm">🔄 Recalculate Rentals</button>
+          </div>
+
+          <!-- Header metrics -->
+          <div class="grid-4">
+            <div class="card">
+              <div class="metric-label">Total Togas Owned</div>
+              <div id="pajah-total-owned" class="metric-value">8</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Active Rentals Count</div>
+              <div id="pajah-total-rentals" class="metric-value text-accent">2</div>
+            </div>
+            <div class="card hero-card">
+              <div class="metric-label">Active Rental Revenue</div>
+              <div id="pajah-total-revenue" class="metric-value emerald">₱2,700.00</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Total Potential Pool</div>
+              <div id="pajah-total-potential" class="metric-value text-cyan-400">₱10,800.00</div>
+            </div>
+          </div>
+
+          <!-- Owners table -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">👥 Toga Owners & Pricing Structure (A1:I9)</div>
+              <span class="badge badge-success">Package Sum = ₱1,350.00</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Owner Name</th>
+                    <th class="text-center">Owned</th>
+                    <th class="text-right">Price Pictorial</th>
+                    <th class="text-right">Price Grad</th>
+                    <th class="text-right">Dan Add-on</th>
+                    <th class="text-right">Pictorial Fprice</th>
+                    <th class="text-right">Grad Fprice</th>
+                    <th class="text-right">Sum (=F+G)</th>
+                    <th class="text-center">Rentals</th>
+                    <th class="text-right">Total Revenue</th>
+                  </tr>
+                </thead>
+                <tbody id="pajah-owners-tbody"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
     </main>
+
 
     <!-- MODALS -->
     <!-- 13th Month Modal -->
@@ -752,7 +1147,11 @@
   <script src="js/view_schedule.js"></script>
   <script src="js/view_bills.js"></script>
   <script src="js/view_settlements.js"></script>
+  <script src="js/view_apt_expenses.js"></script>
+  <script src="js/view_chores.js"></script>
+  <script src="js/view_pajah.js"></script>
   <script src="js/view_dashboard.js"></script>
   <script src="js/app.js"></script>
 </body>
+
 </html>

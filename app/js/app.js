@@ -82,9 +82,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   BillsView.init();
   SettlementsView.init();
   DashboardView.init();
+  if (window.ViewAptExpenses) ViewAptExpenses.init();
+  if (window.ViewChores) ViewChores.init();
+  if (window.ViewPajah) ViewPajah.init();
+
+  window.addEventListener('state-updated', () => {
+    if (window.ViewAptExpenses) ViewAptExpenses.render();
+    if (window.ViewChores) ViewChores.render();
+    if (window.ViewPajah) ViewPajah.render();
+  });
 
   // Load state and trigger initial calculations
   await AppState.loadInitialData();
 
   console.log('Budgeting & Salary Suite loaded successfully.');
 });
+

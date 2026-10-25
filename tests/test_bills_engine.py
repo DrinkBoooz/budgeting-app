@@ -77,3 +77,35 @@ def test_total_bills_summary():
     # Dan share: Rent 3000 + Water 100 + Internet 800 = 3900.00
     assert summary.my_total_share == Decimal("3900.00")
     assert summary.active_bills_count == 3
+
+
+def test_recipient_breakdown_and_color_tokens():
+    """Verify Latest Month Breakdown separating Rent (Tita Beth) from Utilities (Dan) and hex colors."""
+    from app.core.bills_engine import calculate_recipient_breakdown, COLOR_TOKENS
+
+    assert COLOR_TOKENS["Paid"] == "#1A7A4A"
+    assert COLOR_TOKENS["Dan"] == "#D6EAF8"
+    assert COLOR_TOKENS["Troy"] == "#FDEBD0"
+
+    rows = calculate_recipient_breakdown(
+        rent_amount=Decimal("7000.00"),
+        utilities_amount=Decimal("3175.00"),
+        tenants=["Dan", "Jaco", "Troy"],
+        rent_payers=["Dan", "Troy"],
+        utils_payers=["Troy"],
+    )
+    assert len(rows) == 3
+    dan = next(r for r in rows if r.name == "Dan")
+    troy = next(r for r in rows if r.name == "Troy")
+    jaco = next(r for r in rows if r.name == "Jaco")
+
+    # Rent is 7000 / 2 = 3500 each for Dan and Troy. Jaco is 0.
+    assert dan.rent_to_tita_beth == Decimal("3500.00")
+    assert troy.rent_to_tita_beth == Decimal("3500.00")
+    assert jaco.rent_to_tita_beth == Decimal("0.00")
+
+    # Utilities: Troy pays 3175.00 to Dan. Dan pays 0 to Dan.
+    assert troy.utilities_to_dan == Decimal("3175.00")
+    assert dan.utilities_to_dan == Decimal("0.00")
+    assert troy.total_bills == Decimal("6675.00")
+

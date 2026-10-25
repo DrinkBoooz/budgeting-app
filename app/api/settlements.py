@@ -11,6 +11,7 @@ from app.core.settlement_engine import (
     calculate_calumpang_settlement,
     calculate_mama_groceries_remittance,
     generate_executive_cash_flow,
+    calculate_master_settlement_matrix,
     CalumpangExpense,
     RemittanceLineItem,
 )
@@ -58,6 +59,26 @@ class SettlementsAPI(BaseAPI):
             })
         except Exception as e:
             return self.error(f"Failed to calculate peer settlement: {str(e)}")
+
+    def compute_master_matrix(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute Master Settlement Matrix matching Calumpang M1:U39."""
+        try:
+            troy_entries = payload.get("troy_entries", [])
+            jaco_entries = payload.get("jaco_entries", [])
+            dan_entries = payload.get("dan_entries", [])
+            spotify = to_decimal(payload.get("spotify_amount", "57.40"))
+            troy_utils = to_decimal(payload.get("troy_utilities", "3175.00"))
+
+            res = calculate_master_settlement_matrix(
+                troy_entries=troy_entries,
+                jaco_entries=jaco_entries,
+                dan_entries=dan_entries,
+                spotify_amount=spotify,
+                troy_utilities=troy_utils,
+            )
+            return self.success(res)
+        except Exception as e:
+            return self.error(f"Failed to calculate master settlement matrix: {str(e)}")
 
     def compute_groceries_remittance(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Compute net grocery remittance: SUM(items) - SUM(deductions)."""
@@ -133,3 +154,4 @@ class SettlementsAPI(BaseAPI):
             })
         except Exception as e:
             return self.error(f"Failed to calculate cash flow waterfall: {str(e)}")
+
