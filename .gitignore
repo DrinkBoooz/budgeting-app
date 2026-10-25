@@ -23,6 +23,7 @@ references/*.xlsx
 references/*.xls
 references/*.xlsm
 references/*.csv
+references/pinasweldo/raw/
 !references/**/README.md
 
 # User Databases, Environment Variables & Local Data
