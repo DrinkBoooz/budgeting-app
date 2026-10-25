@@ -33,9 +33,12 @@ references/pinasweldo/raw/
 .env
 .env.*
 user_data/
+.user_data/
+data/
 userData/
 *.user.json
 *.personal.json
+user_budget.json
 
 # Logs & Diagnostics
 *.log
