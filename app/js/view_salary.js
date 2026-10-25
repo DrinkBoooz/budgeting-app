@@ -8,14 +8,29 @@ window.SalaryView = {
   },
 
   bindInputs() {
+    const chkSync = document.getElementById('chk-sync-schedule');
     const basicInput = document.getElementById('input-monthly-basic');
     const typeSelect = document.getElementById('select-employment-type');
+    const taxModeSelect = document.getElementById('select-tax-mode');
+    const taxSplitSelect = document.getElementById('select-tax-split');
     const allowTaxInput = document.getElementById('input-taxable-allowances');
     const allowNonTaxInput = document.getElementById('input-nontax-allowances');
     const dedOtherInput = document.getElementById('input-other-deductions');
 
+    if (chkSync) {
+      chkSync.checked = Boolean(AppState.data.pipeline && AppState.data.pipeline.sync_with_schedule);
+      chkSync.addEventListener('change', (e) => {
+        if (!AppState.data.pipeline) AppState.data.pipeline = {};
+        AppState.data.pipeline.sync_with_schedule = e.target.checked;
+        if (basicInput) basicInput.disabled = e.target.checked;
+        AppState.recalculateAll();
+        AppState.persistState();
+      });
+    }
+
     if (basicInput) {
       basicInput.value = AppState.data.salary.monthly_basic;
+      basicInput.disabled = Boolean(AppState.data.pipeline && AppState.data.pipeline.sync_with_schedule);
       basicInput.addEventListener('input', (e) => {
         AppState.data.salary.monthly_basic = e.target.value;
         AppState.recalculateAll();
@@ -27,6 +42,30 @@ window.SalaryView = {
       typeSelect.value = AppState.data.salary.employment_type;
       typeSelect.addEventListener('change', (e) => {
         AppState.data.salary.employment_type = e.target.value;
+        AppState.recalculateAll();
+        AppState.persistState();
+      });
+    }
+
+    if (taxModeSelect) {
+      if (AppState.data.pipeline && AppState.data.pipeline.tax_mode) {
+        taxModeSelect.value = AppState.data.pipeline.tax_mode;
+      }
+      taxModeSelect.addEventListener('change', (e) => {
+        if (!AppState.data.pipeline) AppState.data.pipeline = {};
+        AppState.data.pipeline.tax_mode = e.target.value;
+        AppState.recalculateAll();
+        AppState.persistState();
+      });
+    }
+
+    if (taxSplitSelect) {
+      if (AppState.data.pipeline && AppState.data.pipeline.tax_split_method) {
+        taxSplitSelect.value = AppState.data.pipeline.tax_split_method;
+      }
+      taxSplitSelect.addEventListener('change', (e) => {
+        if (!AppState.data.pipeline) AppState.data.pipeline = {};
+        AppState.data.pipeline.tax_split_method = e.target.value;
         AppState.recalculateAll();
         AppState.persistState();
       });
@@ -80,7 +119,29 @@ window.SalaryView = {
 
   render() {
     const res = AppState.computed.salaryResult;
+    const sched = AppState.computed.cutoffSchedule;
     if (!res) return;
+
+    // Sync banner rendering
+    const isSynced = Boolean(AppState.data.pipeline && AppState.data.pipeline.sync_with_schedule);
+    const badgeSync = document.getElementById('badge-sync-status');
+    const basicInput = document.getElementById('input-monthly-basic');
+    if (badgeSync) {
+      badgeSync.innerText = isSynced ? 'Active' : 'Unlinked';
+      badgeSync.className = `badge ${isSynced ? 'badge-success' : 'badge-secondary'}`;
+    }
+    if (basicInput) {
+      basicInput.value = AppState.data.salary.monthly_basic;
+      basicInput.disabled = isSynced;
+    }
+    if (sched) {
+      const unitsEl = document.getElementById('txt-sync-units');
+      const rateEl = document.getElementById('txt-sync-rate');
+      const grossEl = document.getElementById('txt-sync-gross');
+      if (unitsEl) unitsEl.innerText = `${sched.monthly_totals.total_units} units`;
+      if (rateEl) rateEl.innerText = AppState.formatCurrency(AppState.data.schedule.hourly_rate);
+      if (grossEl) grossEl.innerText = AppState.formatCurrency(sched.monthly_totals.gross_pay);
+    }
 
     // Hero metrics
     document.getElementById('val-net-pay').innerText = AppState.formatCurrency(res.net_pay);

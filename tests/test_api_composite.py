@@ -159,3 +159,51 @@ def test_api_recipient_and_master_matrix_endpoints(api):
     assert res_mat["success"] is True
     assert res_mat["data"]["troy"]["bank_transfer"] == "4233.00"
 
+
+def test_api_unified_budget_and_ytd_endpoints(api):
+    # Test compute_unified_budget
+    res_uni = api.compute_unified_budget({
+        "year": 2026,
+        "month": 9,
+        "daily_units": {"0": 9, "1": 0, "2": 10, "3": 0, "4": 10, "5": 7},
+        "hourly_rate": "198.85",
+        "tax_mode": "pinasweldo_private",
+    })
+    assert res_uni["success"] is True
+    assert res_uni["data"]["b8_gross_total"] == "30622.90"
+    assert res_uni["data"]["statutory_breakdown"]["sss"] == "1525.00"
+
+    # Test compute_ytd_summary
+    res_ytd = api.compute_ytd_summary({
+        "history": [
+            {"total": "6625.00", "per_person": "2208.33", "status": "Paid"},
+            {"total": "7688.00", "per_person": "2562.67", "status": "Paid"},
+        ]
+    })
+    assert res_ytd["success"] is True
+    assert res_ytd["data"]["months_paid"] == 2
+
+    # Test compute_cutoff_split
+    res_split = api.compute_cutoff_split({
+        "cutoff1_gross": "14317.20",
+        "cutoff2_gross": "16305.70",
+        "salary_payload": {
+            "sss": {"ee_total": "1525.00"},
+            "philhealth": {"ee_share": "765.57"},
+            "pagibig": {"ee_share": "200.00"},
+            "withholding_tax_monthly": "1094.85",
+        },
+        "split_method": "equal_split",
+    })
+    assert res_split["success"] is True
+    assert res_split["data"]["total_deductions"] == "3585.42"
+
+    # Test compute_holiday_pay
+    res_hol = api.compute_holiday_pay({
+        "hourly_rate": "198.85",
+        "hours_worked": "8",
+        "holiday_type": "Regular Holiday",
+    })
+    assert res_hol["success"] is True
+    assert res_hol["data"]["total_holiday_pay"] == "3181.60"
+

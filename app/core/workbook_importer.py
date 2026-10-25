@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import openpyxl
 
 from .decimal_utils import to_decimal, round_up_excel, round_currency, quantize_currency, ZERO
+from .bills_engine import calculate_ytd_summary
 from .settlement_engine import calculate_master_settlement_matrix
 from .apt_expenses_engine import (
     ExpenditureItem,
@@ -201,7 +202,7 @@ class WorkbookImporter:
         tenant_col_indices: Dict[str, int] = {}
         for c_idx in range(8, len(headers) + 1):
             name = str(ws.cell(2, c_idx).value or "").strip()
-            if name and name not in ["Total", "Month", "Total Utils w/ int", "LATEST MONTH BREAKDOWN", "Name"]:
+            if name and name not in ["Total", "Month", "Total Utils w/ int", "LATEST MONTH BREAKDOWN", "Name", "Total per person", "Status"]:
                 detected_tenants.append(name)
                 tenant_col_indices[name] = c_idx
 
@@ -223,7 +224,10 @@ class WorkbookImporter:
             water = str(to_decimal(ws.cell(r, 3).value or 0))
             electricity = str(to_decimal(ws.cell(r, 4).value or 0))
             internet = str(to_decimal(ws.cell(r, 5).value or 0))
+            utils_with_fee = str(to_decimal(ws.cell(r, 6).value or 0))
             total = str(to_decimal(ws.cell(r, 7).value or 0))
+            per_person = str(to_decimal(ws.cell(r, 11).value or 0))
+            status_val = str(ws.cell(r, 12).value or "").strip()
 
             active_for_month = []
             for t_name, c_idx in tenant_col_indices.items():
@@ -240,7 +244,10 @@ class WorkbookImporter:
                 "water": water,
                 "electricity": electricity,
                 "internet": internet,
+                "utils_with_fee": utils_with_fee,
                 "total": total,
+                "per_person": per_person,
+                "status": status_val if status_val else ("Paid" if to_decimal(total) > ZERO else "Pending"),
                 "active_tenants": active_for_month,
             })
 
@@ -271,12 +278,15 @@ class WorkbookImporter:
                     "total_bills": str(to_decimal(tot_val) if str(tot_val).strip() != "-" else Decimal("0.00")),
                 })
 
+        ytd_summary = calculate_ytd_summary(history)
+
         return {
             "tenants": tenants,
             "my_tenant_name": my_tenant_name,
             "items": items,
             "history": history,
             "latest_breakdown": latest_breakdown,
+            "ytd_summary": ytd_summary,
         }
 
     def _parse_calumpang(self, wb: openpyxl.Workbook) -> Dict[str, Any]:

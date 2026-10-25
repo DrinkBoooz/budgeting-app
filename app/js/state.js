@@ -58,14 +58,25 @@ window.AppState = {
     budget_extras: {
       additionals: [],
       payables: []
+    },
+    pipeline: {
+      sync_with_schedule: true,
+      tax_mode: "mode_a_private",
+      tax_split_method: "equal_split",
+      living_expense_option: "one_week",
+      rent_perceived: "2500.00",
+      utilities_perceived: "3175.00",
+      include_13th_month: false,
+      custom_tax_rate: "0.00"
     }
   },
-
 
   computed: {
     salaryResult: null,
     cutoffSchedule: null,
+    unifiedBudget: null,
     billsSummary: null,
+    billsYtdSummary: null,
     settlementSummary: null,
     groceriesSummary: null,
     cashFlowSummary: null
@@ -103,18 +114,13 @@ window.AppState = {
       if (res.data.chores) Object.assign(this.data.chores, res.data.chores);
       if (res.data.pajah) Object.assign(this.data.pajah, res.data.pajah);
       if (res.data.budget_extras) Object.assign(this.data.budget_extras, res.data.budget_extras);
+      if (res.data.pipeline) Object.assign(this.data.pipeline, res.data.pipeline);
     }
     await this.recalculateAll();
   },
 
   async recalculateAll() {
-    // 1. Recalculate Salary
-    const salRes = await Bridge.call('compute_salary', this.data.salary);
-    if (salRes && salRes.success) {
-      this.computed.salaryResult = salRes.data;
-    }
-
-    // 2. Recalculate Cutoff Schedule
+    // 1. Recalculate Cutoff Schedule First (Teaching units define Gross!)
     const schedRes = await Bridge.call('compute_cutoff_schedule', {
       year: this.data.schedule.year,
       month: this.data.schedule.month,
@@ -128,7 +134,55 @@ window.AppState = {
       this.computed.cutoffSchedule = schedRes.data;
     }
 
-    // 3. Recalculate Bills
+    // 2. Schedule Sync: Auto-derive basic salary from Tab 2 gross if enabled
+    if (this.data.pipeline && this.data.pipeline.sync_with_schedule && this.computed.cutoffSchedule) {
+      this.data.salary.monthly_basic = this.computed.cutoffSchedule.monthly_totals.gross_pay;
+      if (this.data.pipeline.tax_mode === 'mode_a_private') {
+        this.data.salary.employment_type = 'private';
+      } else if (this.data.pipeline.tax_mode === 'mode_b_8percent') {
+        this.data.salary.employment_type = 'freelancer';
+        this.data.salary.freelance_mode = 'eight';
+      } else if (this.data.pipeline.tax_mode === 'mode_c_govt') {
+        this.data.salary.employment_type = 'government';
+      }
+    }
+
+    // 3. Recalculate Salary (Pinasweldo Engine)
+    const salRes = await Bridge.call('compute_salary', this.data.salary);
+    if (salRes && salRes.success) {
+      this.computed.salaryResult = salRes.data;
+    }
+
+    // 4. Recalculate Unified Budget Pipeline (Schedule -> Pinasweldo -> Current Budget)
+    const p = this.data.pipeline || {};
+    const uniRes = await Bridge.call('compute_unified_budget', {
+      year: this.data.schedule.year,
+      month: this.data.schedule.month,
+      daily_units: this.data.schedule.daily_units,
+      hourly_rate: this.data.schedule.hourly_rate,
+      daily_food_rate: this.data.schedule.daily_food_rate,
+      daily_transport_rate: this.data.schedule.daily_transport_rate,
+      holidays: this.data.schedule.holidays,
+      tax_mode: p.tax_mode || 'mode_a_private',
+      tax_split_method: p.tax_split_method || 'equal_split',
+      living_expense_option: p.living_expense_option || 'one_week',
+      rent_perceived: p.rent_perceived || '2500.00',
+      utilities_perceived: p.utilities_perceived || '3175.00',
+      additionals: (this.data.budget_extras && this.data.budget_extras.additionals && this.data.budget_extras.additionals.length)
+        ? this.data.budget_extras.additionals
+        : [
+            { label: "September", amount: "4000.00" },
+            { label: "additional transfer", amount: "4700.00" }
+          ],
+      payables: (this.data.budget_extras && this.data.budget_extras.payables) || [],
+      include_13th_month: Boolean(p.include_13th_month),
+      custom_tax_rate: p.custom_tax_rate || '0.00'
+    });
+    if (uniRes && uniRes.success) {
+      this.computed.unifiedBudget = uniRes.data;
+    }
+
+    // 5. Recalculate Bills
     const billsRes = await Bridge.call('compute_bills_summary', {
       my_tenant_name: this.data.bills.my_tenant_name,
       round_up: this.data.bills.round_up,
@@ -138,7 +192,15 @@ window.AppState = {
       this.computed.billsSummary = billsRes.data;
     }
 
-    // 4. Recalculate Peer Settlements
+    // 6. Recalculate Bills YTD Summary
+    const ytdRes = await Bridge.call('compute_ytd_summary', {
+      history: this.data.bills.history || []
+    });
+    if (ytdRes && ytdRes.success) {
+      this.computed.billsYtdSummary = ytdRes.data;
+    }
+
+    // 7. Recalculate Peer Settlements
     const settRes = await Bridge.call('compute_peer_settlement', {
       peer_name: this.data.settlements.peer_name,
       items: this.data.settlements.items
@@ -147,7 +209,7 @@ window.AppState = {
       this.computed.settlementSummary = settRes.data;
     }
 
-    // 5. Recalculate Groceries
+    // 8. Recalculate Groceries
     const grocRes = await Bridge.call('compute_groceries_remittance', {
       recipient_name: this.data.groceries.recipient_name,
       items: this.data.groceries.items,
@@ -157,10 +219,14 @@ window.AppState = {
       this.computed.groceriesSummary = grocRes.data;
     }
 
-    // 6. Recalculate Executive Cash Flow
-    const netSalary = this.computed.salaryResult ? this.computed.salaryResult.net_pay : "0.00";
+    // 9. Recalculate Executive Cash Flow
+    let netSalary = this.computed.salaryResult ? this.computed.salaryResult.net_pay : "0.00";
+    let livingBudget = this.computed.cutoffSchedule ? this.computed.cutoffSchedule.monthly_totals.living_budget : "0.00";
+    if (this.computed.unifiedBudget) {
+      netSalary = this.computed.unifiedBudget.net_take_home;
+      livingBudget = this.computed.unifiedBudget.perceived_spending.living_expenses;
+    }
     const billsShare = this.computed.billsSummary ? this.computed.billsSummary.my_total_share : "0.00";
-    const livingBudget = this.computed.cutoffSchedule ? this.computed.cutoffSchedule.monthly_totals.living_budget : "0.00";
     const groceriesRemit = this.computed.groceriesSummary ? this.computed.groceriesSummary.net_transfer_amount : "0.00";
 
     const cfRes = await Bridge.call('compute_cash_flow_waterfall', {

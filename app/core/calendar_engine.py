@@ -337,9 +337,12 @@ def calculate_cutoff_units(
         if isinstance(k, int):
             sched_map[k] = to_decimal(v)
         elif isinstance(k, str):
-            idx = DAY_NAME_TO_INDEX.get(k.strip().lower(), -1)
-            if idx >= 0:
-                sched_map[idx] = to_decimal(v)
+            if k.strip().isdigit():
+                sched_map[int(k.strip())] = to_decimal(v)
+            else:
+                idx = DAY_NAME_TO_INDEX.get(k.strip().lower(), -1)
+                if idx >= 0:
+                    sched_map[idx] = to_decimal(v)
 
     payload = engine.calculate_biweekly_teaching_units(
         year=year,
@@ -393,3 +396,237 @@ def calculate_cutoff_units(
         full_month_allowance=full_month_budget,
         raw_payload=payload,
     )
+
+
+def calculate_unified_budget_pipeline(
+    cutoff_breakdown: CutoffBreakdown,
+    tax_mode: str = "pinasweldo_private",
+    tax_split_method: str = "equal_split",
+    living_expense_option: str = "one_week",
+    rent_perceived: Decimal = Decimal("2500.00"),
+    utilities_perceived: Decimal = Decimal("3175.00"),
+    additionals: Optional[List[Dict[str, Any]]] = None,
+    payables: Optional[List[Dict[str, Any]]] = None,
+    include_13th_month: bool = False,
+    months_worked_13th: Decimal = Decimal("12"),
+    custom_tax_rate: Decimal = Decimal("0.00"),
+) -> Dict[str, Any]:
+    """
+    Unified Schedule -> Pinasweldo -> Current Budget Pipeline.
+
+    Fuses teaching schedule cutoffs directly into Philippine statutory calculations
+    and updates Current Budget rows B8..B32, R31, and Dashboard metrics.
+    """
+    from .tax_calculator import (
+        calculate_salary_payload,
+        calculate_cutoff_deductions_split,
+        calculate_13th_month_pay,
+    )
+
+    c1_gross = cutoff_breakdown.cutoff1_gross_pay
+    c2_gross = cutoff_breakdown.cutoff2_gross_pay
+    monthly_gross = cutoff_breakdown.monthly_gross_pay
+    monthly_units = cutoff_breakdown.monthly_total_units
+
+    # 1. Pinasweldo / Tax calculation based on mode
+    salary_payload = None
+    tax_desc = ""
+
+    if tax_mode == "pinasweldo_private":
+        salary_payload = calculate_salary_payload(monthly_gross, status="private")
+        total_deductions = salary_payload["total_deductions"]
+        statutory_ee = salary_payload["statutory_ee"]
+        withholding_tax = salary_payload["withholding_tax_monthly"]
+        net_pay = salary_payload["net_monthly"]
+        tax_desc = "Private Employee (SSS + PhilHealth + Pag-IBIG + BIR TRAIN)"
+    elif tax_mode == "pinasweldo_freelance_8pct":
+        salary_payload = calculate_salary_payload(monthly_gross, status="freelancer", freelance_mode="eight")
+        statutory_ee = ZERO
+        withholding_tax = salary_payload["withholding_tax_monthly"]
+        total_deductions = withholding_tax
+        net_pay = quantize_currency(monthly_gross - total_deductions)
+        tax_desc = "COS / Part-Time / Freelance (8% Flat Tax over ₱250k)"
+    elif tax_mode == "pinasweldo_government":
+        salary_payload = calculate_salary_payload(monthly_gross, status="government")
+        total_deductions = salary_payload["total_deductions"]
+        statutory_ee = salary_payload["statutory_ee"]
+        withholding_tax = salary_payload["withholding_tax_monthly"]
+        net_pay = salary_payload["net_monthly"]
+        tax_desc = "Government Sector (GSIS 9% + PhilHealth + Pag-IBIG + BIR TRAIN)"
+    else:  # legacy_custom (Excel legacy formula B10 = B8 - (B8 * B9))
+        rate = to_decimal(custom_tax_rate)
+        total_deductions = quantize_currency(monthly_gross * rate)
+        statutory_ee = ZERO
+        withholding_tax = total_deductions
+        net_pay = quantize_currency(monthly_gross - total_deductions)
+        pct_display = (rate * Decimal("100")).quantize(Decimal("0.1"))
+        tax_desc = f"Excel Legacy Formula (Tax Rate: {pct_display}%)"
+
+    effective_rate = (
+        quantize_currency((total_deductions / monthly_gross) * Decimal("100"))
+        if monthly_gross > ZERO
+        else ZERO
+    )
+
+    # 2. Semi-monthly Cutoff Deduction Splitting
+    if salary_payload is not None:
+        split_res = calculate_cutoff_deductions_split(
+            cutoff1_gross=c1_gross,
+            cutoff2_gross=c2_gross,
+            salary_payload=salary_payload,
+            split_method=tax_split_method,
+        )
+    else:
+        c1_d = quantize_currency(total_deductions / Decimal("2"))
+        c2_d = total_deductions - c1_d
+        split_res = {
+            "split_method": tax_split_method,
+            "monthly_gross": str(monthly_gross),
+            "total_deductions": str(total_deductions),
+            "total_net": str(net_pay),
+            "cutoff_1": {
+                "gross": str(c1_gross),
+                "deductions": str(c1_d),
+                "net_pay": str(quantize_currency(max(ZERO, c1_gross - c1_d))),
+                "items": {"share": str(c1_d)},
+            },
+            "cutoff_2": {
+                "gross": str(c2_gross),
+                "deductions": str(c2_d),
+                "net_pay": str(quantize_currency(max(ZERO, c2_gross - c2_d))),
+                "items": {"share": str(c2_d)},
+            },
+        }
+
+    # 3. Perceived Living Expenses & Utilities (B22)
+    rent = to_decimal(rent_perceived)
+    utils = to_decimal(utilities_perceived)
+    if living_expense_option == "full_month":
+        living_cost = cutoff_breakdown.full_month_allowance
+        living_label = f"Full Monthly Working-Day Allowance ({cutoff_breakdown.monthly_working_days} days)"
+    else:
+        living_cost = cutoff_breakdown.one_week_base_allowance
+        living_label = "1-Week Base Living Allowance"
+
+    total_spent_b22 = quantize_currency(rent + utils + living_cost)
+    money_available_b23 = quantize_currency(net_pay - total_spent_b22)
+
+    # 4. Additionals (A25:B32) with 13th-Month Injection
+    add_list = list(additionals or [])
+    if include_13th_month:
+        bonus_calc = calculate_13th_month_pay(monthly_gross, months_worked=months_worked_13th)
+        bonus_val = bonus_calc["total_bonus"]
+        add_list.append({
+            "label": f"13th-Month Pay Bonus ({months_worked_13th} mos)",
+            "amount": str(bonus_val),
+            "is_13th_month": True,
+        })
+
+    total_additionals = sum((to_decimal(a.get("amount", 0)) for a in add_list), ZERO)
+    money_after_additionals_b32 = quantize_currency(money_available_b23 + total_additionals)
+
+    # 5. Payables (P2:R31)
+    pay_list = list(payables or [])
+    total_payables = sum((to_decimal(p.get("price", p.get("amount", 0))) for p in pay_list), ZERO)
+    money_after_payables_r31 = quantize_currency(money_after_additionals_b32 - total_payables)
+
+    # 6. Precompute Side-by-Side Comparison Modes
+    def _quick_mode(mode_key: str, s_status: str, freelance_m: Optional[str] = None) -> Dict[str, Any]:
+        if mode_key == "legacy":
+            t_ded = ZERO
+            n_pay = monthly_gross
+            avail = quantize_currency(n_pay - total_spent_b22)
+            after_add = quantize_currency(avail + total_additionals)
+            return {
+                "gross": str(monthly_gross),
+                "statutory": "0.00",
+                "tax": "0.00",
+                "total_deductions": "0.00",
+                "net_pay": str(n_pay),
+                "money_after_utility": str(avail),
+                "money_after_additionals": str(after_add),
+                "money_after_payables": str(quantize_currency(after_add - total_payables)),
+            }
+        p = calculate_salary_payload(monthly_gross, status=s_status, freelance_mode=freelance_m)
+        stat = p["statutory_ee"]
+        tx = p["withholding_tax_monthly"]
+        if mode_key == "freelance_8pct":
+            stat = ZERO
+            tot_d = tx
+        else:
+            tot_d = p["total_deductions"]
+        np_val = quantize_currency(monthly_gross - tot_d)
+        avail_val = quantize_currency(np_val - total_spent_b22)
+        add_val = quantize_currency(avail_val + total_additionals)
+        return {
+            "gross": str(monthly_gross),
+            "statutory": str(stat),
+            "tax": str(tx),
+            "total_deductions": str(tot_d),
+            "net_pay": str(np_val),
+            "money_after_utility": str(avail_val),
+            "money_after_additionals": str(add_val),
+            "money_after_payables": str(quantize_currency(add_val - total_payables)),
+        }
+
+    comparison = {
+        "legacy_excel_0pct": _quick_mode("legacy", "private"),
+        "pinasweldo_private": _quick_mode("private", "private"),
+        "pinasweldo_freelance_8pct": _quick_mode("freelance_8pct", "freelancer", "eight"),
+        "pinasweldo_government": _quick_mode("government", "government"),
+    }
+
+    return {
+        "year": cutoff_breakdown.year,
+        "month": cutoff_breakdown.month,
+        "tax_mode": tax_mode,
+        "tax_description": tax_desc,
+        "tax_split_method": tax_split_method,
+        "living_expense_option": living_expense_option,
+        "living_label": living_label,
+        "monthly_units": str(monthly_units),
+        "b8_gross_total": str(monthly_gross),
+        "b9_tax_and_statutory": str(total_deductions),
+        "b9_effective_rate": str(effective_rate),
+        "b10_total_after_tax": str(net_pay),
+        "cutoff_1": {
+            "units": str(cutoff_breakdown.cutoff1_total_units),
+            "gross": str(c1_gross),
+            "deductions": split_res["cutoff_1"]["deductions"],
+            "net_pay": split_res["cutoff_1"]["net_pay"],
+            "items": split_res["cutoff_1"].get("items", {}),
+        },
+        "cutoff_2": {
+            "units": str(cutoff_breakdown.cutoff2_total_units),
+            "gross": str(c2_gross),
+            "deductions": split_res["cutoff_2"]["deductions"],
+            "net_pay": split_res["cutoff_2"]["net_pay"],
+            "items": split_res["cutoff_2"].get("items", {}),
+        },
+        "statutory_breakdown": {
+            "sss": str(salary_payload["sss"]["ee_total"]) if salary_payload and "sss" in salary_payload else "0.00",
+            "philhealth": str(salary_payload["philhealth"]["ee_share"]) if salary_payload and "philhealth" in salary_payload else "0.00",
+            "pagibig": str(salary_payload["pagibig"]["ee_share"]) if salary_payload and "pagibig" in salary_payload else "0.00",
+            "gsis": str(salary_payload["gsis"]["ee_share"]) if salary_payload and "gsis" in salary_payload else "0.00",
+            "withholding_tax": str(withholding_tax),
+            "total_deductions": str(total_deductions),
+        },
+        "perceived_expenses": {
+            "rent_b12": str(rent),
+            "utilities_b13": str(utils),
+            "living_cost": str(living_cost),
+            "b22_total_spent": str(total_spent_b22),
+            "b23_available_after_utility": str(money_available_b23),
+        },
+        "additionals_section": {
+            "items": add_list,
+            "total_additionals": str(total_additionals),
+            "b32_money_after_additionals": str(money_after_additionals_b32),
+        },
+        "payables_section": {
+            "items": pay_list,
+            "total_payables": str(total_payables),
+            "r31_money_after_payables": str(money_after_payables_r31),
+        },
+        "side_by_side_comparison": comparison,
+    }

@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 from app.api.base import BaseAPI
 from app.core.calendar_engine import (
     calculate_cutoff_units,
+    calculate_unified_budget_pipeline,
     generate_philippine_holidays,
     Holiday,
 )
@@ -150,3 +151,75 @@ class BudgetAPI(BaseAPI):
             }
             for h in holidays
         ])
+
+    def compute_unified_budget(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute the unified Schedule -> Pinasweldo -> Current Budget pipeline."""
+        try:
+            year = int(payload.get("year", date.today().year))
+            month = int(payload.get("month", date.today().month))
+            daily_units = payload.get("daily_units", {})
+            hourly_rate = to_decimal(payload.get("hourly_rate", "198.85"))
+            daily_food = to_decimal(payload.get("daily_food_rate", "300.00"))
+            daily_transpo = to_decimal(payload.get("daily_transport_rate", "165.00"))
+
+            holidays_payload = payload.get("holidays", [])
+            custom_holidays: List[Holiday] = []
+            for h in holidays_payload:
+                d_str = h.get("date", "")
+                if d_str:
+                    try:
+                        d_obj = date.fromisoformat(d_str)
+                        custom_holidays.append(
+                            Holiday(
+                                date=d_obj,
+                                name=h.get("name", "Holiday"),
+                                law_type=h.get("law_type", "Regular Holiday"),
+                            )
+                        )
+                    except ValueError:
+                        pass
+
+            if not custom_holidays:
+                custom_holidays = generate_philippine_holidays(year)
+
+            breakdown = calculate_cutoff_units(
+                year=year,
+                month=month,
+                daily_units=daily_units,
+                hourly_rate=hourly_rate,
+                daily_food_rate=daily_food,
+                daily_transport_rate=daily_transpo,
+                holidays=custom_holidays,
+            )
+
+            tax_mode = str(payload.get("tax_mode", "pinasweldo_private"))
+            tax_split_method = str(payload.get("tax_split_method", "equal_split"))
+            living_expense_option = str(payload.get("living_expense_option", "one_week"))
+            rent_perceived = to_decimal(payload.get("rent_perceived", "2500.00"))
+            utilities_perceived = to_decimal(payload.get("utilities_perceived", "3175.00"))
+            additionals = payload.get("additionals", [
+                {"label": "September", "amount": "4000.00"},
+                {"label": "additional transfer", "amount": "4700.00"},
+            ])
+            payables = payload.get("payables", [])
+            include_13th_month = bool(payload.get("include_13th_month", False))
+            months_worked_13th = to_decimal(payload.get("months_worked_13th", 12))
+            custom_tax_rate = to_decimal(payload.get("custom_tax_rate", 0))
+
+            unified_res = calculate_unified_budget_pipeline(
+                cutoff_breakdown=breakdown,
+                tax_mode=tax_mode,
+                tax_split_method=tax_split_method,
+                living_expense_option=living_expense_option,
+                rent_perceived=rent_perceived,
+                utilities_perceived=utilities_perceived,
+                additionals=additionals,
+                payables=payables,
+                include_13th_month=include_13th_month,
+                months_worked_13th=months_worked_13th,
+                custom_tax_rate=custom_tax_rate,
+            )
+
+            return self.success(unified_res)
+        except Exception as e:
+            return self.error(f"Failed to compute unified budget: {str(e)}")

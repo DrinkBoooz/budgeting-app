@@ -11,6 +11,7 @@ from app.core.bills_engine import (
     calculate_rolling_utility_average,
     calculate_total_bills_summary,
     calculate_recipient_breakdown,
+    calculate_ytd_summary,
     COLOR_TOKENS,
     UtilityBill,
 )
@@ -120,4 +121,13 @@ class BillsAPI(BaseAPI):
             return self.success(averages)
         except Exception as e:
             return self.error(f"Failed to calculate rolling averages: {str(e)}")
+
+    def compute_ytd_summary(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute YTD Summary stats (Months Paid, YTD Total, Avg/Person, Highest Month)."""
+        try:
+            history = payload.get("history", [])
+            summary = calculate_ytd_summary(history)
+            return self.success(summary)
+        except Exception as e:
+            return self.error(f"Failed to calculate YTD summary: {str(e)}")
 

@@ -11,6 +11,8 @@ from app.core.tax_calculator import (
     calculate_tax_and_contributions,
     calculate_13th_month_pay,
     calculate_freelance_tax,
+    calculate_cutoff_deductions_split,
+    calculate_holiday_pay,
 )
 
 
@@ -99,3 +101,39 @@ class SalaryAPI(BaseAPI):
             })
         except Exception as e:
             return self.error(f"Failed to calculate 13th month: {str(e)}")
+
+    def compute_cutoff_split(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute semi-monthly deduction split for Cutoff 1 and Cutoff 2."""
+        try:
+            cutoff1_gross = to_decimal(payload.get("cutoff1_gross", 0))
+            cutoff2_gross = to_decimal(payload.get("cutoff2_gross", 0))
+            salary_payload = payload.get("salary_payload", {})
+            split_method = str(payload.get("split_method", "equal_split"))
+
+            res = calculate_cutoff_deductions_split(
+                cutoff1_gross=cutoff1_gross,
+                cutoff2_gross=cutoff2_gross,
+                salary_payload=salary_payload,
+                split_method=split_method,
+            )
+            return self.success(res)
+        except Exception as e:
+            return self.error(f"Failed to calculate cutoff split: {str(e)}")
+
+    def compute_holiday_pay(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Compute Philippine holiday pay multipliers (Regular 200%, Special 130%)."""
+        try:
+            hourly_rate = to_decimal(payload.get("hourly_rate", "198.85"))
+            hours_worked = to_decimal(payload.get("hours_worked", 8))
+            holiday_type = str(payload.get("holiday_type", "Regular Holiday"))
+            is_rest_day = bool(payload.get("is_rest_day", False))
+
+            res = calculate_holiday_pay(
+                hourly_rate=hourly_rate,
+                hours_worked=hours_worked,
+                holiday_type=holiday_type,
+                is_rest_day=is_rest_day,
+            )
+            return self.success(res)
+        except Exception as e:
+            return self.error(f"Failed to calculate holiday pay: {str(e)}")

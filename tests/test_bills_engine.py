@@ -109,3 +109,19 @@ def test_recipient_breakdown_and_color_tokens():
     assert dan.utilities_to_dan == Decimal("0.00")
     assert troy.total_bills == Decimal("6675.00")
 
+
+def test_bills_ytd_summary():
+    """Verify YTD summary calculation matching Monthly Bills A408:B413."""
+    from app.core.bills_engine import calculate_ytd_summary
+
+    records = [
+        {"billing_month": "2025-08-28", "total": "6625.00", "per_person": "2208.33", "status": "Paid", "occupants": ["Dan", "Jaco", "Troy"]},
+        {"billing_month": "2025-09-20", "total": "7688.00", "per_person": "2562.67", "status": "Paid", "occupants": ["Dan", "Jaco", "Troy"]},
+        {"billing_month": "2026-10-20", "total": "11231.31", "per_person": "5615.66", "status": "Pending", "occupants": ["Dan", "Troy"]},
+    ]
+    summary = calculate_ytd_summary(records)
+    assert summary["months_paid"] == 2
+    assert summary["ytd_total_bills"] == "14313.00"
+    assert summary["highest_month_total"] == "7688.00"
+    assert summary["lowest_month_paid"] == "6625.00"
+

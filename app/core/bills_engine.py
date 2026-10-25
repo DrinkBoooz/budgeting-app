@@ -23,7 +23,8 @@ class MonthlyBillRecord:
         other_utils: Decimal = ZERO,
         occupants: Optional[List[Dict[str, Any]]] = None,
         status: str = "Paid",
-        notes: str = ""
+        notes: str = "",
+        per_person: Decimal = ZERO
     ):
         self.billing_month = str(billing_month).strip()
         self.rent = quantize_currency(rent)
@@ -33,6 +34,7 @@ class MonthlyBillRecord:
         self.other_utils = quantize_currency(other_utils)
         self.status = status
         self.notes = notes
+        self.per_person = to_decimal(per_person)
 
         # Default occupants: Dan, Jaco, Troy
         self.occupants = occupants if occupants is not None else [
@@ -192,6 +194,80 @@ class BillsEngine:
 
     def get_latest_bill(self) -> Optional[MonthlyBillRecord]:
         return self.records[-1] if self.records else None
+
+    def calculate_ytd_summary(self) -> Dict[str, Any]:
+        """Calculate YTD summary matching Monthly Bills A408:B413.
+
+        - Months Paid: COUNTIF(L3:L405, 'Paid') -> 14
+        - YTD Total Bills: SUMIF(L3:L405, 'Paid', G3:G405) -> ₱136,210.91
+        - YTD Avg Per Person: SUMIF(L3:L405, 'Paid', K3:K405) / COUNTIF(L3:L405, 'Paid') -> ₱3,716.07
+        - Highest Month (Total): MAX across paid months -> ₱12,794.63
+        - Lowest Month (Paid): MIN across paid months -> ₱0.00
+        """
+        paid = [r for r in self.records if str(r.status).strip().lower() == "paid"]
+        count = len(paid)
+        if count == 0:
+            return {
+                "months_paid": 0,
+                "ytd_total_bills": "0.00",
+                "ytd_avg_per_person": "0.00",
+                "highest_month_total": "0.00",
+                "lowest_month_paid": "0.00",
+            }
+
+        total_bills = sum((r.total_bill for r in paid), ZERO)
+        per_person_shares = []
+        for r in paid:
+            if hasattr(r, "per_person") and r.per_person > ZERO:
+                per_person_shares.append(r.per_person)
+            else:
+                occs = len(r.occupants) if r.occupants else 3
+                per_person_shares.append(r.total_bill / Decimal(str(max(1, occs))))
+        avg_per_person = sum(per_person_shares, ZERO) / Decimal(str(count))
+        highest = max(r.total_bill for r in paid)
+        lowest = min(r.total_bill for r in paid)
+
+        return {
+            "months_paid": count,
+            "ytd_total_bills": str(quantize_currency(total_bills)),
+            "ytd_avg_per_person": str(quantize_currency(avg_per_person)),
+            "highest_month_total": str(quantize_currency(highest)),
+            "lowest_month_paid": str(quantize_currency(lowest)),
+        }
+
+
+def calculate_ytd_summary(records: List[Any]) -> Dict[str, Any]:
+    """Calculate YTD Summary stats from list of bill records or history dictionaries."""
+    bill_records: List[MonthlyBillRecord] = []
+    for r in records:
+        if isinstance(r, MonthlyBillRecord):
+            bill_records.append(r)
+        elif isinstance(r, dict):
+            status = r.get("status", "Paid" if to_decimal(r.get("total", 0)) > ZERO else "Pending")
+            r_rent = to_decimal(r.get("rent", 0))
+            r_water = to_decimal(r.get("water", 0))
+            r_elec = to_decimal(r.get("electricity", 0))
+            r_net = to_decimal(r.get("internet", 0))
+            r_other = to_decimal(r.get("other_utils", 0))
+            if r_rent == ZERO and r_water == ZERO and r_elec == ZERO and r_net == ZERO and r_other == ZERO and "total" in r:
+                r_other = to_decimal(r["total"])
+
+            bill_records.append(
+                MonthlyBillRecord(
+                    billing_month=r.get("date", r.get("billing_month", "")),
+                    rent=r_rent,
+                    water=r_water,
+                    electricity=r_elec,
+                    internet=r_net,
+                    other_utils=r_other,
+                    occupants=r.get("active_tenants", r.get("occupants", ["Dan", "Jaco", "Troy"])),
+                    status=status,
+                    notes=r.get("notes", ""),
+                    per_person=to_decimal(r.get("per_person", 0)),
+                )
+            )
+    engine = BillsEngine(records=bill_records)
+    return engine.calculate_ytd_summary()
 
 
 # ---------------------------------------------------------------------------

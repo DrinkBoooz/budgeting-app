@@ -57,3 +57,32 @@ def test_all_linked_assets_exist():
     for js_rel in js_matches:
         js_file = APP_DIR / js_rel
         assert js_file.exists() is True, f"Missing JS asset: {js_file}"
+
+
+def test_unified_pipeline_and_ytd_ui_elements():
+    """Verify presence of key unified pipeline and YTD summary UI elements."""
+    content = UI_HTML_PATH.read_text(encoding="utf-8")
+    expected_ids = [
+        "chk-sync-schedule",
+        "select-tax-mode",
+        "select-tax-split",
+        "val-cb-b8-gross",
+        "val-cb-b9-deductions",
+        "val-cb-b10-net",
+        "val-cb-b22-spent",
+        "val-cb-c1-net",
+        "val-cb-c2-net",
+        "val-cb-b23-after-utils",
+        "val-cb-b32-after-add",
+        "select-living-mode",
+        "chk-include-13th-month",
+        "tbody-mode-comparison",
+        "card-holiday-loss",
+        "val-ytd-months-paid",
+        "val-ytd-grand-total",
+        "val-ytd-avg-person",
+        "val-ytd-highest-month",
+    ]
+    for el_id in expected_ids:
+        assert f'id="{el_id}"' in content, f"Missing required UI element #{el_id} in ui.html"
+

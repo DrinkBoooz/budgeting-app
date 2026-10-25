@@ -91,6 +91,20 @@
               <div class="card-title">💵 Compensation Inputs</div>
             </div>
 
+            <!-- Schedule Sync Banner -->
+            <div class="sync-banner" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 600; font-size: 0.85rem; color: #10b981;">
+                  <input type="checkbox" id="chk-sync-schedule" checked>
+                  <span>🔗 Sync with Schedule</span>
+                </label>
+                <span id="badge-sync-status" class="badge badge-success">Active</span>
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+                Gross derived from Tab 2 (<span id="txt-sync-units">154 units</span> @ <span id="txt-sync-rate">₱198.85</span> = <span id="txt-sync-gross" class="mono font-bold">₱30,622.90</span>).
+              </div>
+            </div>
+
             <div class="form-group">
               <label class="form-label" for="input-monthly-basic">Monthly Basic Salary (₱)</label>
               <input type="number" id="input-monthly-basic" class="form-control mono" step="100" min="0" placeholder="e.g. 30000">
@@ -103,6 +117,24 @@
                 <option value="government">Government Employee (GSIS + PH + HDMF)</option>
                 <option value="freelancer">Self-Employed / Freelancer (8% or Graduated)</option>
                 <option value="kasambahay">Kasambahay (Domestic Worker)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="select-tax-mode">Current Budget Tax Mode</label>
+              <select id="select-tax-mode" class="form-control">
+                <option value="mode_a_private">Mode A: Private Employee (SSS + PHIC + HDMF + TRAIN)</option>
+                <option value="mode_b_8percent">Mode B: COS / Freelancer (8% Flat Tax over ₱250k)</option>
+                <option value="mode_c_govt">Mode C: Government (GSIS 9% EE + PHIC + HDMF)</option>
+                <option value="mode_d_legacy">Mode D: Custom / Excel Legacy (0% or B9 Tax %)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="select-tax-split">Cutoff Deduction Splitting</label>
+              <select id="select-tax-split" class="form-control">
+                <option value="equal_split">Equal 50/50 Split (50% per cutoff)</option>
+                <option value="staggered">Staggered (Cutoff 1: PHIC/HDMF · Cutoff 2: SSS/Tax)</option>
               </select>
             </div>
 
@@ -392,6 +424,110 @@
             </div>
           </div>
 
+          <!-- Current Budget Waterfall & Take-Home Engine -->
+          <div class="card hero-card" style="margin-top: 0.5rem;">
+            <div class="card-header">
+              <div class="card-title">💰 Current Budget Waterfall & Take-Home Engine (Dan BudgetingV3.xlsx B8:B32, R31)</div>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; cursor: pointer;">
+                  <input type="checkbox" id="chk-include-13th-month">
+                  <span>🎁 Inject 13th-Month</span>
+                </label>
+                <span id="badge-active-mode" class="badge badge-primary">Private (Mode A)</span>
+              </div>
+            </div>
+
+            <div class="grid-4" style="margin-bottom: 0.75rem;">
+              <div class="stat-card">
+                <span class="lbl">B8 Gross Income</span>
+                <span id="val-cb-b8-gross" class="val text-emerald-400 font-bold">₱30,622.90</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">B9 Deductions / Tax</span>
+                <span id="val-cb-b9-deductions" class="val text-danger">₱3,585.42 (11.71%)</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">B10 Net Pay (After Tax)</span>
+                <span id="val-cb-b10-net" class="val emerald font-bold">₱27,037.48</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">B22 Total Perceived Spent</span>
+                <span id="val-cb-b22-spent" class="val text-warning">₱6,140.00</span>
+              </div>
+            </div>
+
+            <div class="grid-4" style="margin-bottom: 0.75rem;">
+              <div class="stat-card">
+                <span class="lbl">1st Cutoff Net Cash</span>
+                <span id="val-cb-c1-net" class="val font-semibold">₱12,524.49</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">2nd Cutoff Net Cash</span>
+                <span id="val-cb-c2-net" class="val font-semibold">₱14,512.99</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">B23 After Utilities</span>
+                <span id="val-cb-b23-after-utils" class="val text-cyan-400 font-semibold">₱20,897.48</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">B32 After Additionals</span>
+                <span id="val-cb-b32-after-add" class="val text-emerald-400 font-bold">₱29,597.48</span>
+              </div>
+            </div>
+
+            <!-- Living Expense Option Toggle -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 0.5rem;">
+              <div style="font-size: 0.8rem; color: var(--text-muted);">
+                Perceived Utilities: Rent <span class="mono">₱2,500.00</span> + Utils <span class="mono">₱3,175.00</span> + Living (<span id="txt-cb-living-desc">1-Week ₱465.00</span>)
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-size: 0.8rem; font-weight: 500;">Living Deduction Mode:</label>
+                <select id="select-living-mode" class="form-control" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                  <option value="one_week">1-Week Base Living (₱465.00 → B22: ₱6,140.00)</option>
+                  <option value="full_month">Full-Month Working-Days (₱2,015.00 → B22: ₱7,690.00)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Side-by-Side Employment Mode Comparison Matrix -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">⚖️ Side-by-Side Employment Mode Comparison (Pinasweldo vs Excel Legacy)</div>
+              <span class="badge badge-info">Live Simulation</span>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Line Item</th>
+                    <th class="text-right">Mode A: Private</th>
+                    <th class="text-right">Mode B: 8% COS</th>
+                    <th class="text-right">Mode C: GSIS Gov't</th>
+                    <th class="text-right">Mode D: Excel Legacy (0%)</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-mode-comparison">
+                  <!-- Rendered dynamically by ScheduleView -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Lost Units due to Holidays (A5:C5) -->
+          <div id="card-holiday-loss" class="card" style="padding: 0.75rem 1rem; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-weight: 600; color: #f87171;">⚠️ Lost Units / Cash Due to Holidays (A5:C5):</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted); margin-left: 0.5rem;">Formula: <span class="mono">=SUMPRODUCT(G6:L6, G4:L4) * Hourly Rate</span></span>
+              </div>
+              <div style="display: flex; gap: 0.5rem;">
+                <span class="badge badge-danger"><span id="val-lost-units">0</span> Lost Units</span>
+                <span class="badge badge-danger"><span id="val-lost-cash">₱0.00</span> Lost Gross</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Day-by-Day Breakdown Table -->
           <div class="card">
             <div class="card-header">
@@ -497,6 +633,32 @@
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Monthly Bills YTD Summary (A408:B413) -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📊 Multi-Month / YTD Bills Summary (A408:B413)</div>
+              <span class="badge badge-info">14-Month History</span>
+            </div>
+            <div class="grid-4">
+              <div class="stat-card">
+                <span class="lbl">Months Paid</span>
+                <span id="val-ytd-months-paid" class="val">14</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">YTD Grand Total</span>
+                <span id="val-ytd-grand-total" class="val text-emerald-400 font-bold">₱136,210.91</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">Avg. Per Person / Month</span>
+                <span id="val-ytd-avg-person" class="val">₱3,716.07</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">Highest Billing Month</span>
+                <span id="val-ytd-highest-month" class="val text-accent">₱12,794.63</span>
+              </div>
             </div>
           </div>
         </div>

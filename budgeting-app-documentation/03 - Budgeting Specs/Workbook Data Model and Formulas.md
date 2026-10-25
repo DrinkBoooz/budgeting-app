@@ -214,7 +214,28 @@ Multi-party reconciliation matrix between Dan, Jaco, and Troy:
   MoneyAfterPayable = MoneyAfterAdditionals - SUM(Payables)
   ```
 
----
+### 3.11 Unified Schedule $\rightarrow$ Pinasweldo $\rightarrow$ Current Budget Pipeline
+In `Dan BudgetingV3.xlsx`, `Current Budget!B9` was a dummy flat percentage cell (`Tax = 0`), leaving `B10 = B8 - (B8 * B9) = ₱30,622.90`.
+The application fuses the **Bi-Weekly Working-Days Schedule** (`calendar_engine.py`) with the **Pinasweldo Statutory Engine** (`tax_calculator.py`) into one end-to-end cash flow waterfall:
+
+1. **Direct Gross Ingestion**:
+   - Cutoff 1 Gross (`72 units @ ₱198.85 = ₱14,317.20`) + Cutoff 2 Gross (`82 units @ ₱198.85 = ₱16,305.70`) $\rightarrow$ Monthly Gross (`B8 = ₱30,622.90`).
+2. **Semi-Monthly Deduction Splitting**:
+   - **Equal 50/50 Split**: Each cutoff receives 50% of the monthly statutory deductions and BIR withholding tax.
+   - **Staggered Split**: Cutoff 1 deducts PhilHealth + Pag-IBIG; Cutoff 2 deducts SSS (Regular + MPF) + TRAIN withholding tax.
+3. **Four-Mode Side-by-Side Simulation Matrix**:
+   - **Mode A (Private Employee)**: SSS 2026 MSC `₱30,500` (`₱1,525.00`), PhilHealth 2.5% (`₱765.57`), Pag-IBIG cap (`₱200.00`), BIR TRAIN 15% over `₱20,833.33` (`₱1,094.85`) $\rightarrow$ Net `₱27,037.48`.
+   - **Mode B (COS / Freelance 8%)**: 8% Flat Tax on excess over `₱20,833.33` (`₱783.17`) $\rightarrow$ Net `₱29,839.73`.
+   - **Mode C (Government Employee)**: GSIS 9% EE (`₱2,756.06`), PhilHealth (`₱765.57`), Pag-IBIG (`₱200.00`), BIR TRAIN (`₱911.02`) $\rightarrow$ Net `₱25,990.25`.
+   - **Mode D (Custom / Excel Legacy 0%)**: Zero tax or custom multiplier $\rightarrow$ Net `₱30,622.90`.
+
+### 3.12 Multi-Month Historical Bills YTD Summary (`Monthly Bills!A408:B413`)
+Captures multi-tenant longitudinal utility performance across all 14 recorded billing cycles:
+- **Months Paid (`A408:B408`)**: `=COUNTA(A13:A100)` $\rightarrow$ **`14`**
+- **YTD Grand Total (`A409:B409`)**: `=SUM(G13:G100)` $\rightarrow$ **`₱136,210.91`**
+- **Average Cost Per Person / Month (`A410:B410`)**: `=AVERAGE(H13:H100)` $\rightarrow$ **`₱3,716.07`**
+- **Highest Billing Month (`A412:B412`)**: `=MAX(G13:G100)` $\rightarrow$ **`₱12,794.63`** (Month: `2024-04`)
+
 
 ## 4. Proposed Desktop Software Data Model
 

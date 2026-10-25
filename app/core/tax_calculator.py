@@ -418,6 +418,135 @@ def calculate_salary_payload(
     }
 
 
+def calculate_cutoff_deductions_split(
+    cutoff1_gross: Decimal,
+    cutoff2_gross: Decimal,
+    salary_payload: Dict[str, Any],
+    split_method: str = "equal_split"
+) -> Dict[str, Any]:
+    """
+    Split monthly statutory and tax deductions across Cutoff 1 and Cutoff 2.
+
+    - 'equal_split': 50/50 division of total employee deductions.
+    - 'staggered': Cutoff 1 deducts PhilHealth + Pag-IBIG + 50% Tax;
+                   Cutoff 2 deducts SSS/GSIS + 50% Tax + Other deductions.
+    """
+    c1_g = to_decimal(cutoff1_gross)
+    c2_g = to_decimal(cutoff2_gross)
+    total_gross = c1_g + c2_g
+
+    sss_ee = to_decimal(
+        salary_payload.get("sss", {}).get("ee_total", ZERO)
+        if isinstance(salary_payload.get("sss"), dict)
+        else getattr(salary_payload.get("sss", None), "total_ee", ZERO)
+    )
+    ph_ee = to_decimal(
+        salary_payload.get("philhealth", {}).get("ee_share", ZERO)
+        if isinstance(salary_payload.get("philhealth"), dict)
+        else getattr(salary_payload.get("philhealth", None), "ee_share", ZERO)
+    )
+    hdmf_ee = to_decimal(
+        salary_payload.get("pagibig", {}).get("ee_share", ZERO)
+        if isinstance(salary_payload.get("pagibig"), dict)
+        else getattr(salary_payload.get("pagibig", None), "ee_share", ZERO)
+    )
+    gsis_ee = to_decimal(
+        salary_payload.get("gsis", {}).get("ee_share", ZERO)
+        if isinstance(salary_payload.get("gsis"), dict)
+        else getattr(salary_payload.get("gsis", None), "ee_share", ZERO)
+    )
+
+    tax = to_decimal(salary_payload.get("withholding_tax_monthly", salary_payload.get("withholding_tax", ZERO)))
+    pct_tax = to_decimal(salary_payload.get("percentage_tax_monthly", ZERO))
+    other_ded = to_decimal(salary_payload.get("other_deductions", ZERO))
+
+    total_statutory = sss_ee + ph_ee + hdmf_ee + gsis_ee
+    total_tax = tax + pct_tax
+    total_deductions = total_statutory + total_tax + other_ded
+
+    if split_method == "staggered":
+        half_tax = quantize_currency(total_tax / Decimal("2"))
+        rem_tax = total_tax - half_tax
+        c1_ded = quantize_currency(ph_ee + hdmf_ee + half_tax)
+        c2_ded = total_deductions - c1_ded
+        c1_items = {
+            "philhealth": ph_ee,
+            "pagibig": hdmf_ee,
+            "tax": half_tax,
+        }
+        c2_items = {
+            "sss_or_gsis": sss_ee if sss_ee > ZERO else gsis_ee,
+            "tax": rem_tax,
+            "other": other_ded,
+        }
+    else:
+        c1_ded = quantize_currency(total_deductions / Decimal("2"))
+        c2_ded = total_deductions - c1_ded
+        c1_items = {"share_50_pct": c1_ded}
+        c2_items = {"share_50_pct": c2_ded}
+
+    c1_net = quantize_currency(max(ZERO, c1_g - c1_ded))
+    c2_net = quantize_currency(max(ZERO, c2_g - c2_ded))
+    total_net = c1_net + c2_net
+
+    return {
+        "split_method": split_method,
+        "monthly_gross": str(total_gross),
+        "total_deductions": str(total_deductions),
+        "total_net": str(total_net),
+        "cutoff_1": {
+            "gross": str(c1_g),
+            "deductions": str(c1_ded),
+            "net_pay": str(c1_net),
+            "items": {k: str(v) for k, v in c1_items.items()},
+        },
+        "cutoff_2": {
+            "gross": str(c2_g),
+            "deductions": str(c2_ded),
+            "net_pay": str(c2_net),
+            "items": {k: str(v) for k, v in c2_items.items()},
+        },
+    }
+
+
+def calculate_holiday_pay(
+    hourly_rate: Decimal,
+    hours_worked: Decimal,
+    holiday_type: str = "Regular Holiday",
+    is_rest_day: bool = False
+) -> Dict[str, Any]:
+    """
+    Calculate Philippine statutory holiday pay multipliers:
+    - Regular Holiday Worked: 200% (2.60x if on scheduled rest day)
+    - Special Non-Working Day Worked: 130% (1.50x if on scheduled rest day)
+    """
+    rate = to_decimal(hourly_rate)
+    hrs = to_decimal(hours_worked)
+    base_pay = quantize_currency(rate * hrs)
+
+    is_regular = "regular" in holiday_type.lower()
+    if is_regular:
+        multiplier = Decimal("2.60") if is_rest_day else Decimal("2.00")
+        premium_rate = Decimal("1.60") if is_rest_day else Decimal("1.00")
+    else:
+        multiplier = Decimal("1.50") if is_rest_day else Decimal("1.30")
+        premium_rate = Decimal("0.50") if is_rest_day else Decimal("0.30")
+
+    total_holiday_pay = quantize_currency(base_pay * multiplier)
+    holiday_premium = quantize_currency(base_pay * premium_rate)
+
+    return {
+        "hourly_rate": str(rate),
+        "hours_worked": str(hrs),
+        "holiday_type": holiday_type,
+        "is_rest_day": is_rest_day,
+        "multiplier": str(multiplier),
+        "base_pay": str(base_pay),
+        "holiday_premium": str(holiday_premium),
+        "total_holiday_pay": str(total_holiday_pay),
+    }
+
+
 # ---------------------------------------------------------------------------
 # High-Level Adapter Classes & Aliases
 # ---------------------------------------------------------------------------

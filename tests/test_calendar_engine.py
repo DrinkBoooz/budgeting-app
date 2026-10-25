@@ -96,3 +96,110 @@ def test_holiday_loss_and_allowances():
     # 1-week base allowance: 165 + 300 = 465.00
     assert breakdown.one_week_base_allowance == Decimal("465.00")
 
+
+def test_unified_budget_pipeline_private():
+    """Verify Schedule -> Pinasweldo -> Budget pipeline on 154 units @ ₱198.85."""
+    from app.core.calendar_engine import calculate_unified_budget_pipeline
+
+    daily_units = {"0": 9, "1": 0, "2": 10, "3": 0, "4": 10, "5": 7}
+    breakdown = calculate_cutoff_units(
+        year=2026,
+        month=9,
+        daily_units=daily_units,
+        hourly_rate=Decimal("198.85"),
+        daily_food_rate=Decimal("300.00"),
+        daily_transport_rate=Decimal("165.00"),
+    )
+    assert breakdown.cutoff1_gross_pay == Decimal("14317.20")
+    assert breakdown.cutoff2_gross_pay == Decimal("16305.70")
+    assert breakdown.monthly_gross_pay == Decimal("30622.90")
+
+    res = calculate_unified_budget_pipeline(
+        cutoff_breakdown=breakdown,
+        tax_mode="pinasweldo_private",
+        tax_split_method="equal_split",
+        living_expense_option="one_week",
+        rent_perceived=Decimal("2500.00"),
+        utilities_perceived=Decimal("3175.00"),
+        additionals=[
+            {"label": "September", "amount": "4000.00"},
+            {"label": "additional transfer", "amount": "4700.00"},
+        ],
+    )
+    assert res["b8_gross_total"] == "30622.90"
+    assert res["statutory_breakdown"]["sss"] == "1525.00"
+    assert res["statutory_breakdown"]["philhealth"] in ["765.57", "765.58"]
+    assert res["statutory_breakdown"]["pagibig"] == "200.00"
+    assert res["b10_total_after_tax"] in ["27037.47", "27037.48"]
+    assert res["perceived_expenses"]["b22_total_spent"] == "6140.00"
+    assert res["perceived_expenses"]["b23_available_after_utility"] in ["20897.47", "20897.48"]
+    assert res["additionals_section"]["total_additionals"] == "8700.00"
+    assert res["additionals_section"]["b32_money_after_additionals"] in ["29597.47", "29597.48"]
+
+
+def test_unified_budget_pipeline_8pct_and_legacy():
+    """Verify 8% Freelancer mode and Legacy Excel 0% tax mode."""
+    from app.core.calendar_engine import calculate_unified_budget_pipeline
+
+    daily_units = {"0": 9, "1": 0, "2": 10, "3": 0, "4": 10, "5": 7}
+    breakdown = calculate_cutoff_units(
+        year=2026,
+        month=9,
+        daily_units=daily_units,
+        hourly_rate=Decimal("198.85"),
+        daily_food_rate=Decimal("300.00"),
+        daily_transport_rate=Decimal("165.00"),
+    )
+
+    # 8% Freelance Mode
+    res_8pct = calculate_unified_budget_pipeline(
+        cutoff_breakdown=breakdown,
+        tax_mode="pinasweldo_freelance_8pct",
+        living_expense_option="one_week",
+    )
+    assert res_8pct["b8_gross_total"] == "30622.90"
+    assert res_8pct["b9_tax_and_statutory"] == "783.17"
+    assert res_8pct["b10_total_after_tax"] == "29839.73"
+    assert res_8pct["perceived_expenses"]["b23_available_after_utility"] == "23699.73"
+
+    # Excel Legacy 0% Tax Mode (Exact Dan BudgetingV3.xlsx Current Budget parity)
+    res_legacy = calculate_unified_budget_pipeline(
+        cutoff_breakdown=breakdown,
+        tax_mode="legacy_custom",
+        custom_tax_rate=Decimal("0.00"),
+        living_expense_option="one_week",
+        additionals=[
+            {"label": "September", "amount": "4000.00"},
+            {"label": "additional transfer", "amount": "4700.00"},
+        ],
+    )
+    assert res_legacy["b8_gross_total"] == "30622.90"
+    assert res_legacy["b9_tax_and_statutory"] == "0.00"
+    assert res_legacy["b10_total_after_tax"] == "30622.90"
+    assert res_legacy["perceived_expenses"]["b23_available_after_utility"] == "24482.90"
+    assert res_legacy["additionals_section"]["b32_money_after_additionals"] == "33182.90"
+
+
+def test_holiday_pay_multipliers():
+    """Verify Regular (200%) and Special Non-Working (130%) holiday multipliers."""
+    from app.core.tax_calculator import calculate_holiday_pay
+
+    # 8 hours regular holiday
+    h_reg = calculate_holiday_pay(
+        hourly_rate=Decimal("198.85"),
+        hours_worked=Decimal("8"),
+        holiday_type="Regular Holiday",
+    )
+    assert h_reg["multiplier"] == "2.00"
+    assert h_reg["base_pay"] == "1590.80"
+    assert h_reg["total_holiday_pay"] == "3181.60"
+
+    # 8 hours special holiday
+    h_spec = calculate_holiday_pay(
+        hourly_rate=Decimal("198.85"),
+        hours_worked=Decimal("8"),
+        holiday_type="Special Non-Working Holiday",
+    )
+    assert h_spec["multiplier"] == "1.30"
+    assert h_spec["total_holiday_pay"] == "2068.04"
+

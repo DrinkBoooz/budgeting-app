@@ -53,6 +53,25 @@ window.BillsView = {
     document.getElementById('val-bills-my-share').innerText = AppState.formatCurrency(summary.my_total_share);
     document.getElementById('val-bills-active-count').innerText = `${summary.active_bills_count} Active`;
 
+    // Render YTD Summary (A408:B413)
+    const ytd = AppState.computed.billsYtdSummary;
+    if (ytd) {
+      const mPaidEl = document.getElementById('val-ytd-months-paid');
+      const gTotalEl = document.getElementById('val-ytd-grand-total');
+      const avgPersonEl = document.getElementById('val-ytd-avg-person');
+      const highMonthEl = document.getElementById('val-ytd-highest-month');
+
+      if (mPaidEl) mPaidEl.innerText = ytd.months_paid;
+      if (gTotalEl) gTotalEl.innerText = AppState.formatCurrency(ytd.grand_total);
+      if (avgPersonEl) avgPersonEl.innerText = AppState.formatCurrency(ytd.average_per_person);
+      if (highMonthEl) {
+        highMonthEl.innerText = AppState.formatCurrency(ytd.highest_month ? ytd.highest_month.amount : "0.00");
+        if (ytd.highest_month && ytd.highest_month.month) {
+          highMonthEl.title = `Month: ${ytd.highest_month.month}`;
+        }
+      }
+    }
+
     // Render Bills Table
     const tbody = document.getElementById('tbody-bills');
     if (!tbody) return;
