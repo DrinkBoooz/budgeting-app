@@ -84,6 +84,8 @@ def test_unified_pipeline_and_ytd_ui_elements():
         "tbody-holidays-list",
         "btn-reset-default-holidays",
         "btn-toggle-add-holiday",
+        "btn-sync-external-holidays",
+        "lbl-holiday-source",
         "val-ytd-months-paid",
         "val-ytd-grand-total",
         "val-ytd-avg-person",

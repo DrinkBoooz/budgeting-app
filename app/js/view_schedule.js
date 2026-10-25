@@ -161,6 +161,37 @@ window.ScheduleView = {
       });
     }
 
+    const btnSyncExt = document.getElementById('btn-sync-external-holidays');
+    if (btnSyncExt) {
+      btnSyncExt.addEventListener('click', async () => {
+        const yr = AppState.data.schedule.year || 2026;
+        btnSyncExt.disabled = true;
+        const origText = btnSyncExt.innerText;
+        btnSyncExt.innerText = '⏳ Syncing...';
+        try {
+          const res = await Bridge.call('sync_external_holidays', { year: yr });
+          if (res && Array.isArray(res.holidays)) {
+            AppState.data.schedule.holidays = res.holidays;
+            AppState.data.schedule.holiday_source = res.source;
+            this.renderHolidaysTable();
+            AppState.recalculateAll();
+            AppState.persistState();
+            this.render();
+            const srcLabel = res.source === 'nager_external_api'
+              ? `Synced ${res.count} holidays live from Nager.Date External Philippine Calendar API!`
+              : `Loaded ${res.count} holidays from Philippine Statutory Engine (Offline Mode)`;
+            Toast.show(srcLabel, 'success');
+          }
+        } catch (err) {
+          console.error("External sync failed:", err);
+          Toast.show('Failed to sync from external holiday calendar', 'error');
+        } finally {
+          btnSyncExt.disabled = false;
+          btnSyncExt.innerText = origText;
+        }
+      });
+    }
+
     const btnReset = document.getElementById('btn-reset-default-holidays');
     if (btnReset) {
       btnReset.addEventListener('click', async () => {
@@ -169,6 +200,7 @@ window.ScheduleView = {
           const defHolidays = await Bridge.call('get_default_holidays', { year: yr });
           if (Array.isArray(defHolidays)) {
             AppState.data.schedule.holidays = defHolidays;
+            AppState.data.schedule.holiday_source = 'offline_dynamic_engine';
             this.renderHolidaysTable();
             AppState.recalculateAll();
             AppState.persistState();
@@ -350,13 +382,23 @@ window.ScheduleView = {
   renderHolidaysTable() {
     const tbody = document.getElementById('tbody-holidays-list');
     const lblYear = document.getElementById('lbl-holiday-year');
+    const lblSource = document.getElementById('lbl-holiday-source');
     const yr = AppState.data.schedule.year || 2026;
     if (lblYear) lblYear.innerText = yr;
+    if (lblSource) {
+      if (AppState.data.schedule.holiday_source === 'nager_external_api') {
+        lblSource.className = 'badge badge-success';
+        lblSource.innerText = 'Source: 🌐 Nager.Date External API (Live)';
+      } else {
+        lblSource.className = 'badge badge-info';
+        lblSource.innerText = 'Source: 🏛️ Statutory Calculation Engine';
+      }
+    }
     if (!tbody) return;
 
     const holidays = AppState.data.schedule.holidays || [];
     if (holidays.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 1.5rem;">No holidays configured for ${yr}.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 1.5rem;">No holidays configured for ${yr}. Use "Sync Online Feed", "Add Holiday", or "Reset to Defaults".</td></tr>`;
       return;
     }
 
@@ -372,10 +414,10 @@ window.ScheduleView = {
       return `
         <tr style="${isActive ? '' : 'opacity: 0.5; text-decoration: line-through;'}">
           <td class="text-center">
-            <input type="checkbox" class="chk-holiday-active" data-idx="${idx}" ${isActive ? 'checked' : ''}>
+            <input type="checkbox" class="chk-holiday-active" data-idx="${idx}" ${isActive ? 'checked' : ''} title="Toggle active/inactive status">
           </td>
           <td>
-            <input type="date" class="form-control form-control-sm inp-holiday-date mono" data-idx="${idx}" value="${h.date}" style="padding: 0.15rem 0.35rem; font-size: 0.8rem;">
+            <input type="date" class="form-control form-control-sm inp-holiday-date mono" data-idx="${idx}" value="${h.date}" style="padding: 0.15rem 0.35rem; font-size: 0.8rem;" title="Edit holiday observance date">
           </td>
           <td>
             <strong>${h.name}</strong>
@@ -385,7 +427,7 @@ window.ScheduleView = {
           </td>
           <td style="font-size: 0.8rem; color: var(--text-muted);">${h.scope || 'Nationwide'}</td>
           <td class="text-center">
-            <button type="button" class="btn btn-secondary btn-sm btn-delete-holiday text-danger" data-idx="${idx}" style="padding: 0.1rem 0.4rem;" title="Delete Holiday">✕</button>
+            <button type="button" class="btn btn-secondary btn-sm btn-delete-holiday text-danger font-semibold" data-idx="${idx}" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;" title="Remove this holiday from calendar">🗑️ Remove</button>
           </td>
         </tr>
       `;

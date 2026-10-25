@@ -250,3 +250,23 @@ def test_holiday_pay_multipliers():
     assert h_spec["multiplier"] == "1.30"
     assert h_spec["total_holiday_pay"] == "2068.04"
 
+
+def test_fetch_external_philippine_holidays():
+    """Verify external calendar API fetch and graceful fallback."""
+    from app.core.calendar_engine import fetch_external_philippine_holidays
+
+    # Normal fetch (online or fallback)
+    holidays, source = fetch_external_philippine_holidays(2026)
+    assert len(holidays) >= 18
+    assert source in ["nager_external_api", "offline_dynamic_engine"]
+    for h in holidays:
+        assert hasattr(h, "date")
+        assert hasattr(h, "name")
+        assert h.law_type in ["Regular Holiday", "Special Non-Working Day", "Special Working Day"]
+
+    # Forced fallback by setting timeout to zero or near-zero
+    fb_holidays, fb_source = fetch_external_philippine_holidays(2026, timeout=0.00001)
+    assert len(fb_holidays) >= 18
+    assert fb_source == "offline_dynamic_engine"
+
+

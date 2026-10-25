@@ -11,6 +11,7 @@ from app.core.calendar_engine import (
     calculate_cutoff_units,
     calculate_unified_budget_pipeline,
     generate_philippine_holidays,
+    fetch_external_philippine_holidays,
     Holiday,
 )
 from app.core.decimal_utils import to_decimal
@@ -154,6 +155,30 @@ class BudgetAPI(BaseAPI):
             }
             for h in holidays
         ])
+
+    def sync_external_holidays(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Fetch holidays from external public calendar API (Nager.Date / PH Gov) with fallback."""
+        try:
+            year = int(payload.get("year", date.today().year))
+            holidays, source = fetch_external_philippine_holidays(year)
+            return self.success({
+                "year": year,
+                "source": source,
+                "count": len(holidays),
+                "holidays": [
+                    {
+                        "date": h.date.isoformat(),
+                        "name": h.name,
+                        "law_type": h.law_type,
+                        "scope": h.scope,
+                        "is_active": getattr(h, "is_active", True),
+                    }
+                    for h in holidays
+                ],
+            })
+        except Exception as e:
+            return self.error(f"Failed to sync external holidays: {str(e)}")
+
 
     def compute_unified_budget(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Compute the unified Schedule -> Pinasweldo -> Current Budget pipeline."""

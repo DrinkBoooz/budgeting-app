@@ -3,9 +3,12 @@ Bi-Weekly Calendar & Workday Engine.
 Python implementation of Excel's NETWORKDAYS.INTL with 7-day binary masks and
 Philippine statutory holiday calendar integration.
 """
+import json
+import urllib.request
+import urllib.error
 from datetime import date, timedelta
 import calendar
-from typing import Set, Dict, List, Any, Optional
+from typing import Set, Dict, List, Any, Optional, Tuple
 from decimal import Decimal
 from .decimal_utils import to_decimal, quantize_currency, ZERO
 
@@ -389,6 +392,73 @@ def generate_philippine_holidays(year: Optional[int] = None) -> List[Holiday]:
 
     holidays.sort(key=lambda h: h.date)
     return holidays
+
+
+def fetch_external_philippine_holidays(year: int, timeout: float = 4.0) -> Tuple[List[Holiday], str]:
+    """
+    Fetch Philippine holidays from external public calendar API (Nager.Date v3).
+    Classifies legal pay categories (Regular 200%, Special Non-Working 130%, Special Working 100%)
+    and supplements missing Islamic/Cavite observances.
+    Falls back gracefully to offline dynamic engine if offline or unreachable.
+    Returns: (List[Holiday], source_label)
+    """
+    url = f"https://date.nager.at/api/v3/PublicHolidays/{year}/PH"
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "BudgetingApp/0.2.0 (Philippine Statutory Suite)"}
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            if response.status == 200:
+                raw_data = json.loads(response.read().decode("utf-8"))
+                external_holidays: List[Holiday] = []
+                seen_dates: Set[date] = set()
+
+                regular_names = {
+                    "new year", "maundy thursday", "good friday", "day of valor",
+                    "araw ng kagitingan", "labour", "labor", "independence",
+                    "national heroes", "bonifacio", "christmas day", "rizal",
+                    "eid'l fitr", "eidul fitr", "eid'l adha", "eidul adha"
+                }
+                special_working = {"all souls' day"}
+
+                for item in raw_data:
+                    dt = date.fromisoformat(item["date"])
+                    name = item.get("name", "").strip() or item.get("localName", "").strip()
+                    lower_name = name.lower()
+
+                    if any(r in lower_name for r in regular_names):
+                        law_type = "Regular Holiday"
+                    elif any(w in lower_name for w in special_working):
+                        law_type = "Special Working Day"
+                    else:
+                        law_type = "Special Non-Working Day"
+
+                    scope = "Cavite" if "aguinaldo" in lower_name else "Nationwide"
+                    external_holidays.append(Holiday(
+                        date=dt,
+                        name=name,
+                        law_type=law_type,
+                        scope=scope,
+                        is_active=True
+                    ))
+                    seen_dates.add(dt)
+
+                # Supplement any missing statutory holidays (e.g. Islamic lunar dates or Cavite day)
+                defaults = generate_philippine_holidays(year)
+                for dh in defaults:
+                    if dh.date not in seen_dates:
+                        external_holidays.append(dh)
+                        seen_dates.add(dh.date)
+
+                external_holidays.sort(key=lambda h: h.date)
+                return external_holidays, "nager_external_api"
+    except Exception:
+        pass
+
+    # Graceful fallback to offline statutory calculation engine
+    return generate_philippine_holidays(year), "offline_dynamic_engine"
 
 
 DAY_NAME_TO_INDEX = {

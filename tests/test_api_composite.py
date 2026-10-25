@@ -207,3 +207,10 @@ def test_api_unified_budget_and_ytd_endpoints(api):
     assert res_hol["success"] is True
     assert res_hol["data"]["total_holiday_pay"] == "3181.60"
 
+    # Test sync_external_holidays
+    res_ext = api.sync_external_holidays({"year": 2026})
+    assert res_ext["success"] is True
+    assert "source" in res_ext["data"]
+    assert len(res_ext["data"]["holidays"]) >= 18
+
+

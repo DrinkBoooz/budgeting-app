@@ -1321,11 +1321,16 @@
         <div class="modal-body">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
             <div style="font-size: 0.85rem; color: var(--text-muted); max-width: 480px;">
-              Active Year: <strong id="lbl-holiday-year" class="text-emerald-400">2026</strong> · Holy Week, National Heroes Day, and Islamic/Lunar holidays are calculated dynamically. You can add proclamations, adjust dates, or toggle observances.
+              Active Year: <strong id="lbl-holiday-year" class="text-emerald-400">2026</strong> · 
+              <span id="lbl-holiday-source" class="badge badge-info" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">Source: Statutory Algorithms</span>
+              <div style="font-size: 0.78rem; margin-top: 0.25rem; color: var(--text-muted);">
+                Interface directly with external Philippine calendar feeds, add custom/institutional holidays, or remove holidays.
+              </div>
             </div>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button id="btn-sync-external-holidays" class="btn btn-info btn-sm" title="Sync from external public Philippine holiday API">🌐 Sync Online Feed</button>
               <button id="btn-toggle-add-holiday" class="btn btn-primary btn-sm">➕ Add Holiday</button>
-              <button id="btn-reset-default-holidays" class="btn btn-secondary btn-sm">🔄 Reset to Defaults</button>
+              <button id="btn-reset-default-holidays" class="btn btn-secondary btn-sm" title="Reset back to Philippine statutory baseline">🔄 Reset to Defaults</button>
             </div>
           </div>
 
@@ -1374,7 +1379,7 @@
                   <th>Holiday Observance</th>
                   <th>Classification</th>
                   <th>Scope</th>
-                  <th class="text-center" style="width: 50px;">Action</th>
+                  <th class="text-center" style="width: 80px;">Remove</th>
                 </tr>
               </thead>
               <tbody id="tbody-holidays-list">

@@ -361,3 +361,21 @@ sequenceDiagram
     State->>UI: Re-renders Cutoff cards, Loss banner, and Budget waterfall
 ```
 
+### 3.13.5 External Philippine Holiday Calendar API Integration & Custom Management
+To guarantee accurate live updates when Malacañang issues official Proclamations or shifts holiday dates:
+1. **Live External Calendar Feed**:
+   - Interfaces with the public **Nager.Date API** (`https://date.nager.at/api/v3/PublicHolidays/{year}/PH`).
+   - Automatically maps official Philippine labor classifications:
+     - Regular Holidays (200% base pay rate).
+     - Special Non-Working Days (130% base pay rate).
+     - Special Working Days (100% pay rate).
+   - Supplements external feeds with regional provincial holidays (e.g. Emilio Aguinaldo Day in Cavite) and multi-day Islamic celebrations (Eid'l Fitr).
+2. **Graceful Offline Fallback**:
+   - If the device is offline or the external API is unreachable, the application falls back immediately and without interruption to the offline Meeus/Jones/Butcher Computus statutory engine.
+3. **Full User CRUD Control (Add / Remove / Toggle)**:
+   - **Add**: Users can add institution-specific, municipal, or university foundation days via a quick-entry drawer.
+   - **Remove**: Every holiday entry provides a dedicated `🗑️ Remove` button that permanently deletes the observance from that year's local state.
+   - **Toggle (`is_active`)**: Users can disable an observance without deleting it.
+   - **Reset**: A one-click `🔄 Reset to Defaults` button allows restoring statutory baselines at any time.
+
+
