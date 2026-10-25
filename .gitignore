@@ -1,0 +1,58 @@
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build Artifacts & Standalone Packaging
+build/
+dist/
+*.spec
+*.exe
+*.manifest
+
+# Sensitive Personal Spreadsheets & Private Documents
+references/*.xlsx
+references/*.xls
+references/*.xlsm
+references/*.csv
+!references/**/README.md
+
+# User Databases, Environment Variables & Local Data
+*.db
+*.sqlite
+*.sqlite3
+.env
+.env.*
+user_data/
+userData/
+*.user.json
+*.personal.json
+
+# Logs & Diagnostics
+*.log
+generator.log
+crash.log
+test_reports/
+scratch/
+
+# Security, Certificates & Private Keys
+*.pfx
+*.p12
+*.key
+*.priv
+*.cer
+*.crt
+
+# Obsidian Vault UI & Workspace State (keep app.json and notes tracked)
+budgeting-app-documentation/.obsidian/workspace.json
+budgeting-app-documentation/.obsidian/workspace-mobile.json
+budgeting-app-documentation/.obsidian/cache/
+budgeting-app-documentation/.obsidian/backups/
