@@ -15,6 +15,7 @@ htmlcov/
 build/
 dist/
 *.spec
+!budget_app.spec
 *.exe
 *.manifest
 
