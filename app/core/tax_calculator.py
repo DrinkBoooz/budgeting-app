@@ -290,9 +290,9 @@ def calculate_bonus_tax_exemption(total_bonuses: Decimal) -> Dict[str, Decimal]:
     exempt = min(BONUS_EXEMPT_CAP, b)
     taxable_excess = max(ZERO, b - BONUS_EXEMPT_CAP)
     return {
-        "total_bonus": b,
-        "exempt_amount": exempt,
-        "taxable_excess": taxable_excess
+        "total_bonus": quantize_currency(b),
+        "exempt_amount": quantize_currency(exempt),
+        "taxable_excess": quantize_currency(taxable_excess)
     }
 
 

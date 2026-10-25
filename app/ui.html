@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budgeting & Philippine Salary/Tax Suite</title>
+  
+  <!-- Design System CSS -->
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/tables.css">
+  <link rel="stylesheet" href="css/modals.css">
+  <link rel="stylesheet" href="css/drawers.css">
+</head>
+<body>
+  <div id="app-container">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon">💰</div>
+        <div class="brand-title">
+          Budgeting & Salary Suite
+          <span class="badge-version">Release v0.1.0</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button id="btn-import-excel" class="btn btn-secondary btn-sm" title="Import from Excel Workbook (.xlsx)">
+          📥 Import Excel
+        </button>
+        <button id="btn-export-backup" class="btn btn-secondary btn-sm" title="Export Backup Data (.json)">
+          💾 Backup
+        </button>
+        <button id="btn-open-folder" class="btn btn-secondary btn-sm" title="Open AppData Local Folder">
+          📂 Data Folder
+        </button>
+        <button id="btn-theme-toggle" class="btn btn-secondary btn-icon btn-sm" title="Toggle Theme">
+          ☀️
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs-bar">
+      <button class="tab-btn active" data-tab="tab-salary">
+        <span class="tab-icon">💼</span>
+        <span>Salary & Tax Engine</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-schedule">
+        <span class="tab-icon">📅</span>
+        <span>Bi-Weekly Cutoffs & Living</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-bills">
+        <span class="tab-icon">🏠</span>
+        <span>Monthly Bills & Splitter</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-settlements">
+        <span class="tab-icon">🤝</span>
+        <span>Peer Settlements & Groceries</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-dashboard">
+        <span class="tab-icon">📊</span>
+        <span>Executive Dashboard</span>
+      </button>
+    </nav>
+
+    <!-- Main Workspace Panes -->
+    <main class="main-content">
+      
+      <!-- TAB 1: SALARY & TAX ENGINE -->
+      <section id="tab-salary" class="tab-pane active">
+        <div class="grid-sidebar">
+          <!-- Salary Inputs Sidebar -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">💵 Compensation Inputs</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-monthly-basic">Monthly Basic Salary (₱)</label>
+              <input type="number" id="input-monthly-basic" class="form-control mono" step="100" min="0" placeholder="e.g. 30000">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="select-employment-type">Employment Status</label>
+              <select id="select-employment-type" class="form-control">
+                <option value="private">Private Employee (SSS + PH + HDMF)</option>
+                <option value="government">Government Employee (GSIS + PH + HDMF)</option>
+                <option value="freelancer">Self-Employed / Freelancer (8% or Graduated)</option>
+                <option value="kasambahay">Kasambahay (Domestic Worker)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-taxable-allowances">Taxable Allowances (₱)</label>
+              <input type="number" id="input-taxable-allowances" class="form-control mono" step="50" min="0" value="0">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-nontax-allowances">Non-Taxable Allowances / De Minimis (₱)</label>
+              <input type="number" id="input-nontax-allowances" class="form-control mono" step="50" min="0" value="0">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-other-deductions">Custom / Company Deductions (₱)</label>
+              <input type="number" id="input-other-deductions" class="form-control mono" step="50" min="0" value="0">
+            </div>
+
+            <button id="btn-calc-13th" class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;">
+              🎁 13th-Month Bonus Calculator
+            </button>
+          </div>
+
+          <!-- Salary & Deductions Breakdown Content -->
+          <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <!-- Net Pay Hero -->
+            <div class="card hero-card">
+              <div class="grid-4">
+                <div>
+                  <div class="metric-label">Monthly Take-Home Pay</div>
+                  <div id="val-net-pay" class="metric-value emerald">₱0.00</div>
+                </div>
+                <div>
+                  <div class="metric-label">Semi-Monthly (Cutoff)</div>
+                  <div id="val-cutoff-net" class="metric-value">₱0.00</div>
+                </div>
+                <div>
+                  <div class="metric-label">Gross Monthly Income</div>
+                  <div id="val-gross-income" class="metric-value">₱0.00</div>
+                </div>
+                <div>
+                  <div class="metric-label">Total Employee Deductions</div>
+                  <div id="val-total-deductions" class="metric-value text-danger">₱0.00</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Statutory Breakdown Cards -->
+            <div class="grid-2">
+              <!-- SSS Card -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">🛡️ Social Security System (2026)</div>
+                  <span class="badge badge-success">15% Total</span>
+                </div>
+                <div class="grid-3" style="margin-bottom: 0.75rem;">
+                  <div class="stat-card">
+                    <span class="lbl">Regular SSS (EE)</span>
+                    <span id="val-sss-regular" class="val">₱0.00</span>
+                  </div>
+                  <div class="stat-card">
+                    <span class="lbl">MPF / Pension Booster</span>
+                    <span id="val-sss-mpf" class="val">₱0.00</span>
+                  </div>
+                  <div class="stat-card">
+                    <span class="lbl">Monthly Salary Credit</span>
+                    <span id="val-sss-msc" class="val">₱0.00</span>
+                  </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; border-top: 1px solid var(--border-subtle);">
+                  <span style="font-weight: 500;">Total Employee Contribution:</span>
+                  <span id="val-sss-ee" class="mono font-bold text-emerald-400">₱0.00</span>
+                </div>
+              </div>
+
+              <!-- PhilHealth Card -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">🏥 PhilHealth (2026)</div>
+                  <span class="badge badge-info">5.0% Rate</span>
+                </div>
+                <p style="font-size: 0.8rem; margin-bottom: 1rem;">
+                  Floor ₱10,000 (₱250 EE) · Ceiling ₱100,000 (₱2,500 EE). Shared 50/50 with employer.
+                </p>
+                <div class="grid-2" style="margin-bottom: 0.75rem;">
+                  <div class="stat-card">
+                    <span class="lbl">Employee Share</span>
+                    <span id="val-philhealth-ee" class="val text-emerald-400">₱0.00</span>
+                  </div>
+                  <div class="stat-card">
+                    <span class="lbl">Total Premium</span>
+                    <span id="val-philhealth-total" class="val">₱0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pag-IBIG Card -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">🏠 Pag-IBIG (HDMF)</div>
+                  <span class="badge badge-warning">₱200 Cap</span>
+                </div>
+                <p style="font-size: 0.8rem; margin-bottom: 1rem;">
+                  Fund salary capped at ₱10,000. Maximum employee share is ₱200.00 monthly.
+                </p>
+                <div class="grid-2" style="margin-bottom: 0.75rem;">
+                  <div class="stat-card">
+                    <span class="lbl">Employee Share</span>
+                    <span id="val-pagibig-ee" class="val text-emerald-400">₱0.00</span>
+                  </div>
+                  <div class="stat-card">
+                    <span class="lbl">Total Contribution</span>
+                    <span id="val-pagibig-total" class="val">₱0.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BIR TRAIN Card -->
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">📋 BIR TRAIN Withholding Tax</div>
+                  <span class="badge badge-danger">RA 10963</span>
+                </div>
+                <div class="grid-2" style="margin-bottom: 0.75rem;">
+                  <div class="stat-card">
+                    <span class="lbl">Monthly Withholding</span>
+                    <span id="val-tax-withholding" class="val text-danger">₱0.00</span>
+                  </div>
+                  <div class="stat-card">
+                    <span class="lbl">Annual Taxable Income</span>
+                    <span id="val-annual-taxable" class="val">₱0.00</span>
+                  </div>
+                </div>
+                <p style="font-size: 0.75rem; color: var(--text-muted);">
+                  First ₱250,000 annual taxable income is 100% tax-exempt.
+                </p>
+              </div>
+
+              <!-- GSIS Card (Hidden for private) -->
+              <div id="row-gsis-statutory" class="card" style="display: none;">
+                <div class="card-header">
+                  <div class="card-title">🏛️ GSIS Government Contribution</div>
+                  <span class="badge badge-info">9% EE</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">GSIS Employee Share</span>
+                  <span id="val-gsis-ee" class="val">₱0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: BI-WEEKLY CUTOFFS & LIVING BUDGET -->
+      <section id="tab-schedule" class="tab-pane">
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <!-- Settings Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">⚙️ Schedule & Daily Living Rate Settings</div>
+              <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <label class="form-label" for="select-schedule-month" style="margin: 0;">Month:</label>
+                <select id="select-schedule-month" class="form-control" style="width: 140px;">
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10" selected>October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label class="form-label" for="input-hourly-rate">Hourly Rate / Unit Rate (₱)</label>
+                <input type="number" id="input-hourly-rate" class="form-control mono" step="0.05" value="198.85">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="input-daily-food">Daily Food Allowance (₱)</label>
+                <input type="number" id="input-daily-food" class="form-control mono" step="10" value="200.00">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="input-daily-transpo">Daily Transport Allowance (₱)</label>
+                <input type="number" id="input-daily-transpo" class="form-control mono" step="5" value="55.00">
+              </div>
+            </div>
+
+            <!-- Daily Teaching Units Mon-Sun -->
+            <div style="margin-top: 0.5rem;">
+              <div class="form-label" style="margin-bottom: 0.5rem;">Daily Teaching / Work Units (Monday – Sunday):</div>
+              <div id="weekday-units-grid" class="grid-7" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem;"></div>
+            </div>
+          </div>
+
+          <!-- Cutoff Comparison Hero -->
+          <div class="grid-3">
+            <!-- Cutoff 1 -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">1st Cutoff (Days 1–15)</div>
+                <span class="badge badge-info">Mid-Month</span>
+              </div>
+              <div class="grid-2" style="margin-bottom: 0.5rem;">
+                <div class="stat-card">
+                  <span class="lbl">Working Days</span>
+                  <span id="val-c1-days" class="val">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">Gross Units</span>
+                  <span id="val-c1-units" class="val">0</span>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="stat-card">
+                  <span class="lbl">Gross Pay</span>
+                  <span id="val-c1-gross" class="val text-emerald-400">₱0.00</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">Living Budget</span>
+                  <span id="val-c1-living" class="val">₱0.00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cutoff 2 -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">2nd Cutoff (Days 16–End)</div>
+                <span class="badge badge-success">End of Month</span>
+              </div>
+              <div class="grid-2" style="margin-bottom: 0.5rem;">
+                <div class="stat-card">
+                  <span class="lbl">Working Days</span>
+                  <span id="val-c2-days" class="val">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">Gross Units</span>
+                  <span id="val-c2-units" class="val">0</span>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="stat-card">
+                  <span class="lbl">Gross Pay</span>
+                  <span id="val-c2-gross" class="val text-emerald-400">₱0.00</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">Living Budget</span>
+                  <span id="val-c2-living" class="val">₱0.00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Monthly Totals -->
+            <div class="card hero-card">
+              <div class="card-header">
+                <div class="card-title">Monthly Summary</div>
+                <span class="badge badge-success">Full Month</span>
+              </div>
+              <div class="grid-2" style="margin-bottom: 0.5rem;">
+                <div class="stat-card">
+                  <span class="lbl">Total Workdays</span>
+                  <span id="val-month-workdays" class="val">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">Total Units</span>
+                  <span id="val-month-units" class="val">0</span>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="stat-card">
+                  <span class="lbl">Gross Estimate</span>
+                  <span id="val-month-gross-est" class="val text-emerald-400">₱0.00</span>
+                </div>
+                <div class="stat-card">
+                  <span class="lbl">Living Budget</span>
+                  <span id="val-month-living-budget" class="val text-cyan-400">₱0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day-by-Day Breakdown Table -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">📅 Workday & Unit Schedule Distribution</div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Day of Week</th>
+                    <th class="text-center">Units / Day</th>
+                    <th class="text-center">1st Cutoff Days</th>
+                    <th class="text-center">2nd Cutoff Days</th>
+                    <th class="text-center">Monthly Total Units</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-schedule-breakdown"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: MONTHLY BILLS & UTILITY SPLITTER -->
+      <section id="tab-bills" class="tab-pane">
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <!-- Bills Summary Header Cards -->
+          <div class="grid-3">
+            <div class="card">
+              <div class="metric-label">Grand Total Apartment Bills</div>
+              <div id="val-bills-grand-total" class="metric-value">₱0.00</div>
+            </div>
+            <div class="card hero-card">
+              <div class="metric-label">Dan's Personal Share</div>
+              <div id="val-bills-my-share" class="metric-value emerald">₱0.00</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Billing Status</div>
+              <div id="val-bills-active-count" class="metric-value">0 Active</div>
+            </div>
+          </div>
+
+          <!-- Bills Table -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🏠 Utility & Rent Splitter (=Total / Active Tenants)</div>
+              <button id="btn-add-bill" class="btn btn-primary btn-sm">➕ Add Bill</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Bill Description</th>
+                    <th class="text-right">Total Amount</th>
+                    <th>Active Occupants</th>
+                    <th class="text-right">Dan's Share</th>
+                    <th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-bills"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: PEER SETTLEMENTS & GROCERIES -->
+      <section id="tab-settlements" class="tab-pane">
+        <div class="grid-2">
+          <!-- Calumpang Peer Splitter -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🤝 Calumpang Peer Ledger (50/50 Roundup)</div>
+              <button id="btn-add-peer-item" class="btn btn-primary btn-sm">➕ Add Item</button>
+            </div>
+            <div class="grid-3" style="margin-bottom: 1rem;">
+              <div class="stat-card">
+                <span class="lbl">Total Expenses</span>
+                <span id="val-calumpang-total" class="val">₱0.00</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">Troy Owes Dan</span>
+                <span id="val-calumpang-peer-owes" class="val text-emerald-400">₱0.00</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">Dan's Share</span>
+                <span id="val-calumpang-dan-share" class="val">₱0.00</span>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th class="text-right">Price</th>
+                    <th class="text-right">Dan (Roundup)</th>
+                    <th class="text-right">Peer Share</th>
+                    <th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-calumpang"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Mama Groceries Remittance -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🛒 Mama Groceries Remittance</div>
+              <button id="btn-add-grocery-item" class="btn btn-primary btn-sm">➕ Add Entry</button>
+            </div>
+            <div class="grid-3" style="margin-bottom: 1rem;">
+              <div class="stat-card">
+                <span class="lbl">Gross Items</span>
+                <span id="val-mama-gross" class="val">₱0.00</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">Deductions</span>
+                <span id="val-mama-deductions" class="val text-danger">₱0.00</span>
+              </div>
+              <div class="stat-card">
+                <span class="lbl">Net Transfer</span>
+                <span id="val-mama-net-transfer" class="val text-emerald-400">₱0.00</span>
+              </div>
+            </div>
+            <div style="font-weight: 600; font-size: 0.82rem; margin-bottom: 0.4rem;">Purchases & Allowances:</div>
+            <div class="table-responsive" style="margin-bottom: 1rem;">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th class="text-right">Amount</th>
+                    <th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-groceries"></tbody>
+              </table>
+            </div>
+            <div style="font-weight: 600; font-size: 0.82rem; margin-bottom: 0.4rem;">Deductions & Offsets:</div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Deduction Item</th>
+                    <th class="text-right">Amount</th>
+                    <th class="text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-deductions"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: EXECUTIVE CASH FLOW DASHBOARD -->
+      <section id="tab-dashboard" class="tab-pane">
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+          <!-- Top Executive Metrics -->
+          <div class="grid-4">
+            <div class="card">
+              <div class="metric-label">Total Monthly Inflows</div>
+              <div id="val-dash-inflows" class="metric-value">₱0.00</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Total Monthly Outflows</div>
+              <div id="val-dash-outflows" class="metric-value text-danger">₱0.00</div>
+            </div>
+            <div class="card hero-card">
+              <div class="metric-label">Net Discretionary Surplus</div>
+              <div id="val-dash-surplus" class="metric-value emerald">₱0.00</div>
+            </div>
+            <div class="card">
+              <div class="metric-label">Monthly Savings Rate</div>
+              <div id="val-dash-savings-rate" class="metric-value text-cyan-400">0.0%</div>
+              <div class="progress-bar-container">
+                <div id="dash-savings-progress" class="progress-bar-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cash Flow Waterfall Card -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">🌊 Executive Cash Flow Waterfall</div>
+            </div>
+            <div class="table-responsive">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Cash Flow Stream</th>
+                    <th>Category</th>
+                    <th class="text-right">Amount (₱)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Net Monthly Take-Home Pay</strong></td>
+                    <td><span class="badge badge-success">Inflow</span></td>
+                    <td id="wf-net-salary" class="currency-cell text-emerald-400">₱0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Daily Living Budget (Transpo & Food)</td>
+                    <td><span class="badge badge-warning">Living Outflow</span></td>
+                    <td id="wf-living-budget" class="currency-cell text-danger">₱0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Apartment Bills & Utilities Share</td>
+                    <td><span class="badge badge-info">Fixed Outflow</span></td>
+                    <td id="wf-bills-share" class="currency-cell text-danger">₱0.00</td>
+                  </tr>
+                  <tr>
+                    <td>Mama Groceries & Family Remittance</td>
+                    <td><span class="badge badge-warning">Family Transfer</span></td>
+                    <td id="wf-groceries-remit" class="currency-cell text-danger">₱0.00</td>
+                  </tr>
+                  <tr style="background: var(--bg-card-hover);">
+                    <td><strong>Net Unallocated Surplus / Savings</strong></td>
+                    <td><span class="badge badge-success">Capital Retained</span></td>
+                    <td id="wf-net-surplus" class="currency-cell text-emerald-400 font-bold" style="font-size: 1.1rem;">₱0.00</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- MODALS -->
+    <!-- 13th Month Modal -->
+    <div id="modal-13th-month" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">🎁 13th-Month Pay & Exemption Breakdown</div>
+          <button class="btn btn-secondary btn-sm modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="stat-card" style="margin-bottom: 0.75rem;">
+            <span class="lbl">Total 13th-Month Bonus</span>
+            <span id="m-13th-total" class="val text-emerald-400">₱0.00</span>
+          </div>
+          <div class="grid-2">
+            <div class="stat-card">
+              <span class="lbl">Tax-Exempt (₱90k Cap)</span>
+              <span id="m-13th-exempt" class="val text-info">₱0.00</span>
+            </div>
+            <div class="stat-card">
+              <span class="lbl">Taxable Excess</span>
+              <span id="m-13th-taxable" class="val text-danger">₱0.00</span>
+            </div>
+          </div>
+          <p style="font-size: 0.8rem; margin-top: 1rem; color: var(--text-muted);">
+            Under NIRC Section 32(B)(7)(e) (as amended by TRAIN Law RA 10963), the total 13th-month pay and other benefits up to ₱90,000 are completely exempt from Philippine withholding tax.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary modal-close">Got It</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add Bill Modal -->
+    <div id="modal-add-bill" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">➕ Add Utility Bill</div>
+          <button class="btn btn-secondary btn-sm modal-close">✕</button>
+        </div>
+        <form id="form-add-bill">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="modal-bill-name">Bill Description</label>
+              <input type="text" id="modal-bill-name" class="form-control" placeholder="e.g. Fiber Internet" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="modal-bill-category">Category</label>
+              <select id="modal-bill-category" class="form-control">
+                <option value="Electricity">Electricity</option>
+                <option value="Water">Water</option>
+                <option value="Internet">Internet</option>
+                <option value="Rent">Rent</option>
+                <option value="Maintenance">Maintenance</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="modal-bill-amount">Total Amount (₱)</label>
+              <input type="number" id="modal-bill-amount" class="form-control mono" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Bill</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Peer Item Modal -->
+    <div id="modal-add-peer-item" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">➕ Add Peer Shared Item (Calumpang 50/50)</div>
+          <button class="btn btn-secondary btn-sm modal-close">✕</button>
+        </div>
+        <form id="form-add-peer-item">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="modal-peer-desc">Item / Store Description</label>
+              <input type="text" id="modal-peer-desc" class="form-control" placeholder="e.g. Angel's Pizza" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="modal-peer-amount">Total Price (₱)</label>
+              <input type="number" id="modal-peer-amount" class="form-control mono" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted);">
+              Dan's share will be automatically computed using <code>ROUNDUP(Price/2, 0)</code>, matching Dan BudgetingV3.xlsx.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Item</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Grocery Modal -->
+    <div id="modal-add-grocery" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div class="modal-title">➕ Add Mama Grocery / Remittance Item</div>
+          <button class="btn btn-secondary btn-sm modal-close">✕</button>
+        </div>
+        <form id="form-add-grocery">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="modal-grocery-desc">Description</label>
+              <input type="text" id="modal-grocery-desc" class="form-control" placeholder="e.g. Rice 25kg" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="modal-grocery-amount">Amount (₱)</label>
+              <input type="number" id="modal-grocery-amount" class="form-control mono" step="0.01" min="0" placeholder="0.00" required>
+            </div>
+            <div class="form-group" style="flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+              <input type="checkbox" id="modal-grocery-is-deduction">
+              <label for="modal-grocery-is-deduction" class="form-label" style="margin: 0; cursor: pointer;">This is a Deduction / Advance Offset</label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Entry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/bridge.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/view_salary.js"></script>
+  <script src="js/view_schedule.js"></script>
+  <script src="js/view_bills.js"></script>
+  <script src="js/view_settlements.js"></script>
+  <script src="js/view_dashboard.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
